@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Music Review Board</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0b0b0f;
+      --panel: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.14);
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.7);
+      --gold: #d4af37;
+      --green: #2ecc71;
+      --blue: #3498db;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+
+    .subtle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Now Playing */
+    .now-playing {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 32px;
+    }
+
+    .np-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+
+    .np-main {
+      font-size: 28px;
+      font-weight: 900;
+      margin: 4px 0;
+    }
+
+    .np-sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* Top 3 */
+    .top3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .podium {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .podium .rank {
+      font-weight: 900;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .podium .track {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .podium .meta {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .podium .score {
+      margin-top: 10px;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .gold { border-color: var(--gold); }
+    .gold .rank { color: var(--gold); }
+
+    .green { border-color: var(--green); }
+    .green .rank { color: var(--green); }
+
+    .blue { border-color: var(--blue); }
+    .blue .rank { color: var(--blue); }
+
+    /* Leaderboard Table */
+    .board-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .board-title {
+      font-size: 18px;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .table-container {
+      max-height: 500px;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      background: #101016;
+      z-index: 2;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    th {
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    tr:nth-child(even) {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .rank-1 { background: rgba(212,175,55,0.12); }
+    .rank-2 { background: rgba(46,204,113,0.12); }
+    .rank-3 { background: rgba(52,152,219,0.12); }
+
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div>
+        <div class="brand">AI MUSIC REVIEW BOARD</div>
+        <div class="subtle">Live rankings for AI-generated music</div>
+      </div>
+      <div class="subtle" id="lastUpdated">Updated: —</div>
+    </header>
+
+    <!-- Now Playing -->
+    <section class="now-playing">
+      <div class="np-title">NOW PLAYING</div>
+      <div class="np-main" id="npMain">Nothing selected</div>
+      <div class="np-sub" id="npSub"></div>
+    </section>
+
+    <!-- Top 3 -->
+    <section class="top3">
+      <div class="podium gold" id="top1"></div>
+      <div class="podium green" id="top2"></div>
+      <div class="podium blue" id="top3"></div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section class="board-wrap">
+      <div class="board-title">LEADERBOARD (Top 50 • Scores ≥ 30)</div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Artist</th>
+              <th>Track</th>
+              <th>Genre</th>
+              <th>Total</th>
+              <th>Breakdown</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      © 2026 aimusicboards.com — Community rankings powered by live reviews
+    </footer>
+  </div>
+
+  <script>
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch("leaderboard.json", { cache: "no-store" });
+        const data = await res.json();
+
+        document.getElementById("lastUpdated").textContent =
+          "Updated: " + new Date(data.updated_at).toLocaleString();
+
+        // Now Playing
+        if (data.now_playing) {
+          document.getElementById("npMain").textContent =
+            data.now_playing.artist + " — " + data.now_playing.track;
+
+          let sub = [];
+          if (data.now_playing.genre) sub.push("Genre: " + data.now_playing.genre);
+          if (data.now_playing.status) sub.push("Status: " + data.now_playing.status);
+          document.getElementById("npSub").textContent = sub.join(" • ");
+        }
+
+        // Only show qualifying (>=30)
+        const entries = data.leaderboard.filter(e => e.total >= 30);
+
+        // Top 3
+        renderPodium("top1", entries[0], 1);
+        renderPodium("top2", entries[1], 2);
+        renderPodium("top3", entries[2], 3);
+
+        // Table (Top 50)
+        const tbody = document.getElementById("leaderboardBody");
+        tbody.innerHTML = "";
+
+        entries.slice(0, 50).forEach((e, i) => {
+          const tr = document.createElement("tr");
+          if (i === 0) tr.classList.add("rank-1");
+          if (i === 1) tr.classList.add("rank-2");
+          if (i === 2) tr.classList.add("rank-3");
+
+          tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${e.artist}</td>
+            <td>${e.track}</td>
+            <td>${e.genre || ""}</td>
+            <td><strong>${e.total}/40</strong></td>
+            <td>L${e.lyrics} • V${e.vocals} • P${e.production} • O${e.originality}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error("Failed to load leaderboard:", err);
+      }
+    }
+
+    function renderPodium(id, entry, rank) {
+      const el = document.getElementById(id);
+      if (!entry) {
+        el.innerHTML = "<div class='rank'>—</div><div class='track'>No entry</div>";
+        return;
+      }
+
+      el.innerHTML = `
+        <div class="rank">#${rank}</div>
+        <div class="track">${entry.artist} — ${entry.track}</div>
+        <div class="meta">${entry.genre || ""}</div>
+        <div class="score">${entry.total}/40</div>
+        <div class="meta">L${entry.lyrics} • V${entry.vocals} • P${entry.production} • O${entry.originality}</div>
+      `;
+    }
+
+    loadLeaderboard();
+    setInterval(loadLeaderboard, 15000); // refresh every 15 seconds
+  </script>
+
+</body>
+</html>

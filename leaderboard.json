@@ -1,0 +1,24 @@
+{
+  "updated_at": "2026-01-14T16:23:13Z",
+  "now_playing": {
+    "artist": "Mike Stadium",
+    "track": "Stagnant",
+    "genre": "Rock",
+    "status": "Reviewed",
+    "link": ""
+  },
+  "leaderboard": [
+    {
+      "rank": 1,
+      "artist": "Mike Stadium",
+      "track": "Stagnant",
+      "genre": "Rock",
+      "total": 32,
+      "lyrics": 8,
+      "vocals": 9,
+      "production": 8,
+      "originality": 7,
+      "reviewed_at": "2026-01-14T15:14:57Z"
+    }
+  ]
+}
