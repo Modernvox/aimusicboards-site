@@ -480,14 +480,17 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(w)
         layout.setSpacing(12)
 
-        title = QLabel("REVIEW — Queue + Scoring")
+        title = QLabel("REVIEW — Submission Queue + Scoring")
         title.setFont(self._big_font(18, True))
         layout.addWidget(title)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter = QSplitter()
+        splitter.setOrientation(Qt.Orientation.Horizontal)
         layout.addWidget(splitter, 1)
 
-        # Left: Queue
+        # ----------------------------
+        # Left: Submission Queue + Inputs
+        # ----------------------------
         left = QWidget()
         left_layout = QVBoxLayout(left)
         left_layout.setSpacing(10)
@@ -501,10 +504,15 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.queue_list, 1)
 
         add_form = QFormLayout()
-        self.in_artist = QLineEdit(); self.in_artist.setPlaceholderText("Artist")
-        self.in_track = QLineEdit(); self.in_track.setPlaceholderText("Track")
-        self.in_genre = QLineEdit(); self.in_genre.setPlaceholderText("Genre (Hip-Hop, Pop, Rock, EDM...)")
-        self.in_link  = QLineEdit(); self.in_link.setPlaceholderText("Link (optional)")
+        self.in_artist = QLineEdit()
+        self.in_artist.setPlaceholderText("Artist (e.g., Mike Stadium)")
+        self.in_track = QLineEdit()
+        self.in_track.setPlaceholderText("Track (e.g., Stagnant)")
+        self.in_genre = QLineEdit()
+        self.in_genre.setPlaceholderText("Genre (Rock, Hip-Hop, Pop, EDM...)")
+        self.in_link = QLineEdit()
+        self.in_link.setPlaceholderText("Link (optional)")
+
         add_form.addRow("Artist", self.in_artist)
         add_form.addRow("Track", self.in_track)
         add_form.addRow("Genre", self.in_genre)
@@ -514,20 +522,24 @@ class MainWindow(QMainWindow):
         btn_row = QHBoxLayout()
         self.btn_add_queue = QPushButton("Add to Queue")
         self.btn_add_queue.clicked.connect(self.add_submission)
+
         self.btn_remove_queue = QPushButton("Remove")
         self.btn_remove_queue.clicked.connect(self.remove_submission)
+
         btn_row.addWidget(self.btn_add_queue)
         btn_row.addWidget(self.btn_remove_queue)
         left_layout.addLayout(btn_row)
 
         splitter.addWidget(left)
 
-        # Right: Scoring
+        # ----------------------------
+        # Right: Scoring + Actions
+        # ----------------------------
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.setSpacing(10)
 
-        r_title = QLabel("Scoring (0–10 each)")
+        r_title = QLabel("Scoring")
         r_title.setFont(self._big_font(14, True))
         right_layout.addWidget(r_title)
 
@@ -541,19 +553,24 @@ class MainWindow(QMainWindow):
         self.s_vocals = QSpinBox(); self.s_vocals.setRange(0, 10)
         self.s_prod   = QSpinBox(); self.s_prod.setRange(0, 10)
         self.s_orig   = QSpinBox(); self.s_orig.setRange(0, 10)
-        score_form.addRow("Lyrics", self.s_lyrics)
-        score_form.addRow("Vocals / Delivery", self.s_vocals)
-        score_form.addRow("Production", self.s_prod)
-        score_form.addRow("Originality", self.s_orig)
+
+        score_form.addRow("Lyrics (0–10)", self.s_lyrics)
+        score_form.addRow("Vocals (0–10)", self.s_vocals)
+        score_form.addRow("Production (0–10)", self.s_prod)
+        score_form.addRow("Originality (0–10)", self.s_orig)
         right_layout.addLayout(score_form)
 
         action_row = QHBoxLayout()
+
         btn_set_now = QPushButton("Set as Now Playing")
         btn_set_now.clicked.connect(self.set_selected_now_playing)
+
         btn_mark_reviewing = QPushButton("Mark Reviewing")
         btn_mark_reviewing.clicked.connect(lambda: self.set_selected_status("Reviewing"))
+
         btn_mark_reviewed = QPushButton("Mark Reviewed")
         btn_mark_reviewed.clicked.connect(lambda: self.set_selected_status("Reviewed"))
+
         action_row.addWidget(btn_set_now)
         action_row.addWidget(btn_mark_reviewing)
         action_row.addWidget(btn_mark_reviewed)
@@ -563,15 +580,22 @@ class MainWindow(QMainWindow):
         self.btn_send_to_board.clicked.connect(self.add_score_to_leaderboard)
         right_layout.addWidget(self.btn_send_to_board)
 
-        btn_to_board = QPushButton("Go to Board (3)")
+        nav_row = QHBoxLayout()
+        btn_to_host = QPushButton("Back to Host (1)")
+        btn_to_host.clicked.connect(lambda: self.switch_page(0))
+        btn_to_board = QPushButton("Go to Leaderboard (3)")
         btn_to_board.clicked.connect(lambda: self.switch_page(2))
-        right_layout.addWidget(btn_to_board)
+        nav_row.addWidget(btn_to_host)
+        nav_row.addWidget(btn_to_board)
+        nav_row.addStretch()
+        right_layout.addLayout(nav_row)
 
         right_layout.addStretch()
         splitter.addWidget(right)
-        splitter.setSizes([520, 740])
 
+        splitter.setSizes([520, 740])
         return w
+
 
     def _build_board_page(self) -> QWidget:
         w = QWidget()
