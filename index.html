@@ -77,6 +77,58 @@
       color: var(--muted);
     }
 
+    /* NEW: Submission / credibility strip */
+    .notice {
+      margin: 0 0 18px 0;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      padding: 12px 14px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .notice .headline {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      font-size: var(--fs-sm);
+    }
+
+    .notice .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(46,204,113,0.35);
+      background: rgba(46,204,113,0.10);
+      color: rgba(255,255,255,0.9);
+      font-size: var(--fs-xxs);
+      white-space: nowrap;
+    }
+
+    .notice .line {
+      color: var(--muted);
+      font-size: var(--fs-xxs);
+    }
+
+    .notice .how {
+      color: rgba(255,255,255,0.88);
+      font-size: var(--fs-xxs);
+    }
+
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     /* Layout grid: 2 columns on desktop, 1 column on mobile */
     .layout {
       display: grid;
@@ -125,6 +177,29 @@
       color: var(--muted);
       word-break: break-word;
     }
+
+    /* NEW: Session label under Now Playing */
+    .session-line {
+      margin-top: 10px;
+      display: none;
+      font-size: var(--fs-xxs);
+      color: rgba(255,255,255,0.86);
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+    }
+
+    /* NEW: Scoring legend micro-text */
+    .legend {
+      margin-top: 10px;
+      font-size: var(--fs-xxs);
+      color: var(--muted);
+      line-height: 1.35;
+      border-top: 1px dashed rgba(255,255,255,0.12);
+      padding-top: 10px;
+    }
+    .legend strong { color: rgba(255,255,255,0.88); }
 
     /* Top 3 / Podium */
     .top3 {
@@ -192,11 +267,19 @@
     .board-title {
       font-size: var(--fs-lg);
       font-weight: 950;
-      margin: 0 0 10px 0;
+      margin: 0;
+    }
+
+    .board-sub {
+      margin-top: 6px;
+      font-size: var(--fs-xxs);
+      color: var(--muted);
+      line-height: 1.35;
     }
 
     /* Desktop table */
     .table-container {
+      margin-top: 12px;
       max-height: 520px;
       overflow: auto;
       border-radius: 12px;
@@ -328,6 +411,8 @@
       color: var(--muted);
       white-space: nowrap;
     }
+
+    .pill.hidden { display: none; }
   </style>
 </head>
 <body>
@@ -338,8 +423,27 @@
         <div class="brand">AI MUSIC REVIEW BOARD</div>
         <div class="subtle">Live rankings for AI-generated music</div>
       </div>
-      <div class="pill" id="lastUpdated">Updated: —</div>
+
+      <div class="pill-row">
+        <!-- NEW: Reviewed Live / Board Session pill (auto hides if not available) -->
+        <div class="pill hidden" id="sessionPill">Reviewed Live: —</div>
+        <div class="pill" id="lastUpdated">Updated: —</div>
+      </div>
     </header>
+
+    <!-- NEW: Submission strip (enticing + clear + legit) -->
+    <section class="notice" aria-label="Submission information">
+      <div class="headline">
+        <span class="badge">Submissions Open During LIVE Reviews</span>
+        <span>Artists featured live on TikTok.</span>
+      </div>
+      <div class="line">
+        This board updates in real-time during review sessions — rankings reflect live scoring, not playlists.
+      </div>
+      <div class="how">
+        To submit: join the next LIVE, follow the host, and drop your track link when submissions open.
+      </div>
+    </section>
 
     <div class="layout">
       <!-- Left column: Now Playing + Top 3 -->
@@ -349,10 +453,22 @@
           <div class="np-main" id="npMain">Nothing selected</div>
           <div class="np-sub" id="npSub"></div>
 
+          <!-- NEW: Session label (shows when present in JSON) -->
+          <div class="session-line" id="sessionLine"></div>
+
           <div class="top3" aria-label="Top 3">
             <div class="podium gold" id="top1"></div>
             <div class="podium green" id="top2"></div>
             <div class="podium blue" id="top3"></div>
+          </div>
+
+          <!-- NEW: Scoring legend / definitions -->
+          <div class="legend">
+            <strong>Scoring:</strong>
+            L = Lyrics • V = Vocal/Delivery • P = Production • O = Originality
+            <span style="display:block; margin-top:6px;">
+              Scores are assigned live during review sessions and rolled into a 40-point total.
+            </span>
           </div>
         </section>
       </div>
@@ -361,6 +477,9 @@
       <div class="right-col">
         <section class="panel">
           <div class="board-title">LEADERBOARD (Top 50 • Scores ≥ 30)</div>
+          <div class="board-sub">
+            Breakdown legend: L = Lyrics • V = Vocal/Delivery • P = Production • O = Originality
+          </div>
 
           <!-- Desktop/Tablet table -->
           <div class="table-container" aria-label="Leaderboard table">
@@ -398,10 +517,37 @@
         const res = await fetch("leaderboard.json", { cache: "no-store" });
         const data = await res.json();
 
+        // Updated timestamp (existing)
         document.getElementById("lastUpdated").textContent =
           "Updated: " + new Date(data.updated_at).toLocaleString();
 
-        // Now Playing
+        // NEW: Board session label (optional)
+        // Supported fields:
+        // - data.reviewed_live (string) e.g. "Jan 14, 2026"
+        // - data.board_session (string) e.g. "Board Session 004 • Jan 14, 2026"
+        // - data.now_playing.reviewed_live (string)
+        const sessionText =
+          data.board_session ||
+          data.reviewed_live ||
+          (data.now_playing && data.now_playing.reviewed_live) ||
+          "";
+
+        const sessionPill = document.getElementById("sessionPill");
+        const sessionLine = document.getElementById("sessionLine");
+
+        if (sessionText && sessionText.trim().length) {
+          sessionPill.classList.remove("hidden");
+          sessionPill.textContent = "Reviewed Live: " + sessionText;
+
+          sessionLine.style.display = "block";
+          sessionLine.textContent = "Reviewed Live — " + sessionText;
+        } else {
+          sessionPill.classList.add("hidden");
+          sessionLine.style.display = "none";
+          sessionLine.textContent = "";
+        }
+
+        // Now Playing (existing)
         if (data.now_playing) {
           document.getElementById("npMain").textContent =
             `${data.now_playing.artist} — ${data.now_playing.track}`;
