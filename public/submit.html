@@ -16,7 +16,7 @@
     .closed{background:rgba(255,0,0,.12);border:1px solid rgba(255,0,0,.35)}
     .open{background:rgba(0,255,120,.10);border:1px solid rgba(0,255,120,.30)}
 
-    /* NEW: Acknowledgement styling */
+    /* Acknowledgement styling */
     .ack {
       margin-top: 14px;
       padding: 12px;
@@ -44,6 +44,38 @@
       font-size: 13px;
       line-height: 1.35;
     }
+
+    /* Priority buttons */
+    .prio-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+    .prio-row button{
+      margin-top:0;
+      width:auto;
+      flex:1;
+      padding:12px;
+      border-radius:12px;
+      font-weight:900;
+    }
+    .btn-free{background:#ffffff;color:#000}
+    .btn-skip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff}
+    .btn-upnext{background:#d4af37;color:#000}
+    .hint{margin:10px 0 0;font-size:13px;line-height:1.4}
+
+    /* NEW: Fairness notice */
+    .notice {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.35);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .notice strong { color: #d4af37; }
   </style>
 </head>
 <body>
@@ -69,7 +101,7 @@
         <label>Notes (optional)</label>
         <textarea name="notes" rows="4" placeholder="Anything you want Mike to know…"></textarea>
 
-        <!-- NEW: Warning + Acknowledgement -->
+        <!-- Warning + Acknowledgement -->
         <div class="warning">
           <strong>Important:</strong> This board is for evaluating <em>AI music with human-written lyrics</em>.
           Submissions using fully AI-generated lyrics may be disqualified.
@@ -82,7 +114,27 @@
           </label>
         </div>
 
-        <button type="submit">Submit</button>
+        <!-- NEW: Priority selection -->
+        <label>Priority (optional)</label>
+        <div class="prio-row">
+          <button type="button" id="btnFree" class="btn-free">Free Submit</button>
+          <button type="button" id="btnSkip" class="btn-skip">$5 Skip the Line</button>
+          <button type="button" id="btnUpNext" class="btn-upnext">$20 UP NEXT</button>
+        </div>
+
+        <p class="muted hint">
+          $5 moves your track ahead of the free queue. $20 attempts to lock the very next review slot.
+        </p>
+
+        <!-- NEW: Fairness notice -->
+        <div class="notice">
+          <strong>Fair Play Policy:</strong>
+          For fairness, two paid skips are followed by one free review.
+          </div>
+
+        <!-- Legacy submit hidden (kept for safety) -->
+        <button type="submit" id="legacySubmit" style="display:none">Submit</button>
+
         <p id="msg" class="muted"></p>
       </form>
     </div>
@@ -93,6 +145,10 @@ const statusEl = document.getElementById("status");
 const form = document.getElementById("f");
 const msg = document.getElementById("msg");
 const lyricsConfirm = document.getElementById("lyricsConfirm");
+
+const btnFree = document.getElementById("btnFree");
+const btnSkip = document.getElementById("btnSkip");
+const btnUpNext = document.getElementById("btnUpNext");
 
 async function refreshStatus() {
   const r = await fetch("/api/status", { cache: "no-store" });
@@ -110,21 +166,37 @@ async function refreshStatus() {
   }
 }
 
-form?.addEventListener("submit", async (e) => {
-  e.preventDefault();
+function disableAll(disabled) {
+  [btnFree, btnSkip, btnUpNext].forEach(b => {
+    if (!b) return;
+    b.disabled = !!disabled;
+    b.style.opacity = disabled ? "0.6" : "1";
+    b.style.cursor = disabled ? "not-allowed" : "pointer";
+  });
+}
 
+function buildPayload() {
+  const fd = new FormData(form);
+  const payload = Object.fromEntries(fd.entries());
+  payload.lyrics_confirmed = true;
+  return payload;
+}
+
+async function createSubmission() {
   if (!lyricsConfirm.checked) {
     msg.textContent = "You must confirm that your lyrics were written by you.";
-    return;
+    return null;
+  }
+
+  const payload = buildPayload();
+
+  if (!payload.artist_name || !payload.track_title || !payload.genre || !payload.track_url) {
+    msg.textContent = "Please fill out all required fields.";
+    return null;
   }
 
   msg.textContent = "Submitting…";
-
-  const fd = new FormData(form);
-  const payload = Object.fromEntries(fd.entries());
-
-  // Include acknowledgement in payload
-  payload.lyrics_confirmed = true;
+  disableAll(true);
 
   const r = await fetch("/api/submit", {
     method: "POST",
@@ -133,14 +205,185 @@ form?.addEventListener("submit", async (e) => {
   });
 
   const j = await r.json().catch(() => ({}));
+
   if (!r.ok) {
     msg.textContent = (j && j.error) ? j.error : "Submission failed.";
+    disableAll(false);
+    return null;
+  }
+
+  return j.id;
+}
+
+async function startPaidCheckout(submissionId, paidType) {
+  msg.textContent = "Redirecting to secure checkout…";
+
+  const r = await fetch("/api/paid_checkout", {
+    method: "POST",
+    headers: {"content-type":"application/json"},
+    body: JSON.stringify({ submission_id: submissionId, paid_type: paidType })
+  });
+
+  const j = await r.json().catch(() => ({}));
+
+  if (!r.ok || !j.checkout_url) {
+    msg.textContent = (j && j.error) ? j.error : "Could not start checkout.";
+    disableAll(false);
     return;
   }
 
+  window.location.href = j.checkout_url;
+}
+
+btnFree?.addEventListener("click", async () => {
+  const id = await createSubmission();
+  if (!id) return;
+
   msg.textContent = "Submitted! You’re in the queue.";
   form.reset();
+  disableAll(false);
 });
+
+btnSkip?.addEventListener("click", async () => {
+  const id = await createSubmission();
+  if (!id) return;
+  await startPaidCheckout(id, "SKIP");
+});
+
+btnUpNext?.addEventListener("click", async () => {
+  const id = await createSubmission();
+  if (!id) return;
+  await startPaidCheckout(id, "UPNEXT");
+});
+
+form?.addEventListener("submit", (e) => e.preventDefault());
+
+refreshStatus();
+setInterval(refreshStatus, 5000);
+</script>
+</body>
+</html>
+
+
+<script>
+const statusEl = document.getElementById("status");
+const form = document.getElementById("f");
+const msg = document.getElementById("msg");
+const lyricsConfirm = document.getElementById("lyricsConfirm");
+
+const btnFree = document.getElementById("btnFree");
+const btnSkip = document.getElementById("btnSkip");
+const btnUpNext = document.getElementById("btnUpNext");
+
+async function refreshStatus() {
+  const r = await fetch("/api/status", { cache: "no-store" });
+  const j = await r.json();
+  const open = !!j.submissions_open;
+
+  if (!open) {
+    statusEl.className = "status closed";
+    statusEl.textContent = "Submissions are only accepted during broadcasting.";
+    form.style.display = "none";
+  } else {
+    statusEl.className = "status open";
+    statusEl.textContent = "LIVE: Submissions are OPEN.";
+    form.style.display = "block";
+  }
+}
+
+function disableAll(disabled) {
+  [btnFree, btnSkip, btnUpNext].forEach(b => {
+    if (!b) return;
+    b.disabled = !!disabled;
+    b.style.opacity = disabled ? "0.6" : "1";
+    b.style.cursor = disabled ? "not-allowed" : "pointer";
+  });
+}
+
+function buildPayload() {
+  const fd = new FormData(form);
+  const payload = Object.fromEntries(fd.entries());
+  payload.lyrics_confirmed = true;
+  return payload;
+}
+
+async function createSubmission() {
+  if (!lyricsConfirm.checked) {
+    msg.textContent = "You must confirm that your lyrics were written by you.";
+    return null;
+  }
+
+  const payload = buildPayload();
+
+  // Basic client-side required checks (server also checks)
+  if (!payload.artist_name || !payload.track_title || !payload.genre || !payload.track_url) {
+    msg.textContent = "Please fill out all required fields.";
+    return null;
+  }
+
+  msg.textContent = "Submitting…";
+  disableAll(true);
+
+  const r = await fetch("/api/submit", {
+    method: "POST",
+    headers: {"content-type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  const j = await r.json().catch(() => ({}));
+
+  if (!r.ok) {
+    msg.textContent = (j && j.error) ? j.error : "Submission failed.";
+    disableAll(false);
+    return null;
+  }
+
+  return j.id;
+}
+
+async function startPaidCheckout(submissionId, paidType) {
+  msg.textContent = "Redirecting to secure checkout…";
+
+  const r = await fetch("/api/paid_checkout", {
+    method: "POST",
+    headers: {"content-type":"application/json"},
+    body: JSON.stringify({ submission_id: submissionId, paid_type: paidType })
+  });
+
+  const j = await r.json().catch(() => ({}));
+
+  if (!r.ok || !j.checkout_url) {
+    msg.textContent = (j && j.error) ? j.error : "Could not start checkout.";
+    disableAll(false);
+    return;
+  }
+
+  window.location.href = j.checkout_url;
+}
+
+btnFree?.addEventListener("click", async () => {
+  const id = await createSubmission();
+  if (!id) return;
+
+  msg.textContent = "Submitted! You’re in the queue.";
+  form.reset();
+  disableAll(false);
+});
+
+btnSkip?.addEventListener("click", async () => {
+  const id = await createSubmission();
+  if (!id) return;
+  await startPaidCheckout(id, "SKIP");
+});
+
+btnUpNext?.addEventListener("click", async () => {
+  const id = await createSubmission();
+  if (!id) return;
+  await startPaidCheckout(id, "UPNEXT");
+});
+
+// Prevent default enter-submit behavior
+form?.addEventListener("submit", (e) => e.preventDefault());
 
 refreshStatus();
 setInterval(refreshStatus, 5000);

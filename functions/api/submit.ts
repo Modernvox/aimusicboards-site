@@ -29,7 +29,10 @@ export async function onRequest(context: { request: Request; env: Env }) {
   const id = uuid();
   const created_at = nowIso();
 
-  // paid/priority are ready for later; default 0 here
+  // IMPORTANT:
+  // - payment_status defaults to 'NONE' (per your ALTER TABLE)
+  // - paid_type defaults NULL
+  // - stripe_session_id defaults NULL
   await context.env.DB.prepare(`
     INSERT INTO submissions
       (id, created_at, artist_name, track_title, genre, track_url, notes, priority, paid, status)
