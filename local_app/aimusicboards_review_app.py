@@ -286,11 +286,38 @@ class Main(QWidget):
             j = api_post("/api/admin_score", payload)
             total = j.get("total")
             approved = j.get("approved")
-            QMessageBox.information(self, "Saved",
-                                    f"Final score saved.\nTotal: {total}\nBoard: {'YES' if approved else 'NO'}")
+
+            QMessageBox.information(
+                self,
+                "Saved",
+                f"Final score saved.\nTotal: {total}\nBoard: {'YES' if approved else 'NO'}"
+            )
+
+            # Trigger FINAL now_playing update for overlay recap (non-blocking)
+            try:
+                api_post("/api/now_playing", {
+                    "final": True,
+                    "submission_id": self.selected.id,
+                    "artist_name": self.selected.artist_name,
+                    "track_title": self.selected.track_title,
+                    "genre": self.selected.genre,
+                    "track_url": self.selected.track_url,
+                    "lyrics": self.s_lyrics.value(),
+                    "delivery": self.s_delivery.value(),
+                    "production": self.s_production.value(),
+                    "originality": self.s_originality.value(),
+                    "replay": self.s_replay.value(),
+                    "total": int(total) if total is not None else None,
+                    "approved": bool(approved),
+                })
+            except Exception:
+                pass
+
             self.refresh()
+
         except Exception as e:
             QMessageBox.critical(self, "Score submit failed", str(e))
+
 
 def main():
     app = QApplication(sys.argv)
