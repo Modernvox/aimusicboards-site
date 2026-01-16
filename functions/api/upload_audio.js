@@ -49,7 +49,13 @@ export async function onRequest(context) {
   const key = `uploads/${crypto.randomUUID()}.${ext}`;
 
   // Best effort content-type
-  const contentType = file.type && file.type.length ? file.type : "application/octet-stream";
+  let contentType = "application/octet-stream";
+  if (ext === "mp3") contentType = "audio/mpeg";
+  else if (ext === "m4a") contentType = "audio/mp4";
+  else if (ext === "wav") contentType = "audio/wav";
+  else if (ext === "aac") contentType = "audio/aac";
+  else if (ext === "ogg") contentType = "audio/ogg";
+
 
   await env.AIMB_BUCKET.put(key, file.stream(), {
     httpMetadata: { contentType },
