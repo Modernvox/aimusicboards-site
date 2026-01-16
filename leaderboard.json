@@ -1,13 +1,14 @@
 {
-  "updated_at": "2026-01-14T21:58:59Z",
-  "board_session": "Board Session 001 • Jan 14, 2026",
-  "now_playing": {
-    "artist": "Mike Stadium",
-    "track": "Stagnant",
-    "genre": "Rock",
-    "status": "Reviewed",
-    "link": ""
+  "updated_at": "2026-01-15T19:23:48Z",
+  "board_session": "Board Session 013 \u2022 Jan 15, 2026",
+  "scoring": {
+    "L": "Lyrics",
+    "V": "Vocal/Delivery",
+    "P": "Production",
+    "O": "Originality"
   },
+  "submission_note": "Submissions open during live reviews.",
+  "now_playing": null,
   "leaderboard": [
     {
       "rank": 1,

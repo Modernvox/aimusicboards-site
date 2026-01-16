@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Submit • AI Music Boards</title>
+  <style>
+    body{background:#0b0b0f;color:#fff;font-family:Inter,system-ui,Arial;margin:0}
+    .wrap{max-width:720px;margin:40px auto;padding:16px}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:18px}
+    input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff}
+    label{display:block;margin:12px 0 6px;font-weight:700}
+    button{margin-top:14px;width:100%;padding:12px;border-radius:12px;border:0;font-weight:800;cursor:pointer}
+    .muted{color:rgba(255,255,255,.75)}
+    .status{padding:10px;border-radius:12px;margin-bottom:12px}
+    .closed{background:rgba(255,0,0,.12);border:1px solid rgba(255,0,0,.35)}
+    .open{background:rgba(0,255,120,.10);border:1px solid rgba(0,255,120,.30)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Artist Submission</h1>
+      <p class="muted">Submissions only open during the live broadcast.</p>
+      <div id="status" class="status">Checking status…</div>
+
+      <form id="f" style="display:none">
+        <label>Artist name</label>
+        <input name="artist_name" required />
+
+        <label>Track title</label>
+        <input name="track_title" required />
+
+        <label>Genre</label>
+        <input name="genre" required placeholder="R&B, Rap, Rock, Pop, etc." />
+
+        <label>Track link (Suno / SoundCloud / etc.)</label>
+        <input name="track_url" required placeholder="https://..." />
+
+        <label>Notes (optional)</label>
+        <textarea name="notes" rows="4" placeholder="Anything you want Mike to know…"></textarea>
+
+        <button type="submit">Submit</button>
+        <p id="msg" class="muted"></p>
+      </form>
+    </div>
+  </div>
+
+<script>
+const statusEl = document.getElementById("status");
+const form = document.getElementById("f");
+const msg = document.getElementById("msg");
+
+async function refreshStatus() {
+  const r = await fetch("/api/status", { cache: "no-store" });
+  const j = await r.json();
+  const open = !!j.submissions_open;
+
+  if (!open) {
+    statusEl.className = "status closed";
+    statusEl.textContent = "Submissions are only accepted during broadcasting.";
+    form.style.display = "none";
+  } else {
+    statusEl.className = "status open";
+    statusEl.textContent = "LIVE: Submissions are OPEN.";
+    form.style.display = "block";
+  }
+}
+
+form?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  msg.textContent = "Submitting…";
+
+  const fd = new FormData(form);
+  const payload = Object.fromEntries(fd.entries());
+
+  const r = await fetch("/api/submit", {
+    method: "POST",
+    headers: {"content-type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    msg.textContent = (j && j.error) ? j.error : "Submission failed.";
+    return;
+  }
+
+  msg.textContent = "Submitted! You’re in the queue.";
+  form.reset();
+});
+
+refreshStatus();
+setInterval(refreshStatus, 5000);
+</script>
+</body>
+</html>
