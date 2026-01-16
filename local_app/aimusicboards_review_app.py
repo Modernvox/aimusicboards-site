@@ -1,7 +1,5 @@
 import os
 import sys
-import time
-import threading
 import webbrowser
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -20,6 +18,7 @@ CLAIMED_BY = os.environ.get("AIMB_CLAIMED_BY", "mike-desktop")
 
 POLL_MS = 2500
 
+
 @dataclass
 class Submission:
     id: str
@@ -35,13 +34,21 @@ class Submission:
     claimed_by: Optional[str]
     claimed_at: Optional[str]
 
+    # NEW (Stripe paid skips)
+    payment_status: str = "NONE"      # NONE | PENDING | PAID
+    paid_type: Optional[str] = None   # SKIP | UPNEXT
+    stripe_session_id: Optional[str] = None
+
+
 def auth_headers() -> Dict[str, str]:
     return {"Authorization": f"Bearer {ADMIN_TOKEN}"}
+
 
 def api_get(path: str) -> Any:
     r = requests.get(f"{API_BASE}{path}", headers=auth_headers(), timeout=10)
     r.raise_for_status()
     return r.json()
+
 
 def api_post(path: str, payload: Dict[str, Any]) -> Any:
     r = requests.post(f"{API_BASE}{path}", json=payload, headers=auth_headers(), timeout=10)
@@ -53,14 +60,47 @@ def api_post(path: str, payload: Dict[str, Any]) -> Any:
             raise RuntimeError(f"HTTP {r.status_code}")
     return r.json()
 
+
+def paid_badge(s: Submission) -> str:
+    """
+    Queue badge rules:
+      - PAID + UPNEXT => "⭐ UP NEXT"
+      - PAID + SKIP   => "💸 SKIP"
+      - PENDING       => "⏳ PENDING"
+      - NONE          => ""
+    """
+    ps = (s.payment_status or "NONE").upper().strip()
+    pt = (s.paid_type or "").upper().strip()
+
+    if ps == "PAID":
+        if pt == "UPNEXT":
+            return "⭐ UP NEXT"
+        if pt == "SKIP":
+            return "💸 SKIP"
+        return "💸 PAID"
+
+    if ps == "PENDING":
+        # show which type they tried to buy, if we have it
+        if pt == "UPNEXT":
+            return "⏳ PENDING (UP NEXT)"
+        if pt == "SKIP":
+            return "⏳ PENDING (SKIP)"
+        return "⏳ PENDING"
+
+    return ""
+
+
 class Main(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("AI Music Review Board • Control Room")
 
         if not ADMIN_TOKEN:
-            QMessageBox.critical(self, "Missing Token",
-                                 "Set AIMB_ADMIN_TOKEN env var to your ADMIN_TOKEN secret.")
+            QMessageBox.critical(
+                self,
+                "Missing Token",
+                "Set AIMB_ADMIN_TOKEN env var to your ADMIN_TOKEN secret."
+            )
             sys.exit(1)
 
         self.submissions: List[Submission] = []
@@ -99,11 +139,16 @@ class Main(QWidget):
         self.link = QLineEdit(); self.link.setReadOnly(True)
         self.notes = QTextEdit(); self.notes.setReadOnly(True); self.notes.setFixedHeight(90)
 
+        # NEW: show paid state on the right panel too
+        self.paid_info = QLineEdit()
+        self.paid_info.setReadOnly(True)
+
         form.addRow("Artist", self.artist)
         form.addRow("Track", self.title)
         form.addRow("Genre", self.genre)
         form.addRow("Link", self.link)
         form.addRow("Notes", self.notes)
+        form.addRow("Paid / Priority", self.paid_info)
         right.addLayout(form)
 
         btns = QHBoxLayout()
@@ -181,7 +226,14 @@ class Main(QWidget):
         try:
             j = api_get("/api/admin_queue")
             items = j.get("items", [])
-            self.submissions = [Submission(**it) for it in items]
+
+            # Be resilient if backend didn't include new fields yet
+            parsed: List[Submission] = []
+            for it in items:
+                # Defaults are handled by dataclass fields
+                parsed.append(Submission(**it))
+
+            self.submissions = parsed
             self.render_list()
         except Exception as e:
             # soft fail; keep app usable
@@ -195,9 +247,12 @@ class Main(QWidget):
             self.list.clear()
 
             for s in self.submissions:
-                tag = "💸" if s.paid else "   "
+                badge = paid_badge(s)
+                badge_txt = f"{badge}  " if badge else ""
+
                 claim = f" • claimed by {s.claimed_by}" if s.claimed_by else ""
-                text = f"{tag} [{s.status}] {s.artist_name} — {s.track_title} ({s.genre}){claim}"
+                text = f"{badge_txt}[{s.status}] {s.artist_name} — {s.track_title} ({s.genre}){claim}"
+
                 it = QListWidgetItem(text)
                 it.setData(Qt.UserRole, s.id)
                 self.list.addItem(it)
@@ -210,7 +265,6 @@ class Main(QWidget):
                         break
         finally:
             self.list.blockSignals(False)
-
 
     def on_select(self):
         items = self.list.selectedItems()
@@ -232,6 +286,13 @@ class Main(QWidget):
         self.link.setText(s.track_url)
         self.notes.setPlainText(s.notes or "")
 
+        # NEW: paid info field on right panel
+        badge = paid_badge(s)
+        if badge:
+            self.paid_info.setText(badge)
+        else:
+            self.paid_info.setText("—")
+
         # Only reset scoring when the selection changes
         if self._loaded_id != s.id:
             for w in [self.s_lyrics, self.s_delivery, self.s_production, self.s_originality, self.s_replay]:
@@ -243,7 +304,6 @@ class Main(QWidget):
             self._loaded_id = s.id
 
         self.update_total()
-
 
     def open_link(self):
         if self.selected:
@@ -325,6 +385,7 @@ def main():
     w.resize(1100, 650)
     w.show()
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()

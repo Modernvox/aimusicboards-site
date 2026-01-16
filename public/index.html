@@ -554,7 +554,7 @@
             <strong>Scoring:</strong>
             L = Lyrics • V = Vocal/Delivery • P = Production • O = Originality
             <span style="display:block; margin-top:6px;">
-              Scores are assigned live during review sessions and rolled into a 40-point total.
+              Scores are assigned live during review sessions and rolled into a 50-point total.
             </span>
           </div>
         </section>
@@ -721,7 +721,7 @@
         <div class="rank">#${rank}</div>
         <div class="track">${safeText(entry.artist)} — ${safeText(entry.track)}</div>
         <div class="meta">${genre || "—"}</div>
-        <div class="score">${entry.total}/40</div>
+        <div class="score">${entry.total}/50</div>
         <div class="meta">${breakdown}</div>
       `;
     }
@@ -741,7 +741,7 @@
           <td>${safeText(e.artist)}</td>
           <td>${safeText(e.track)}</td>
           <td>${safeText(e.genre)}</td>
-          <td><strong>${e.total}/40</strong></td>
+          <td><strong>${e.total}/50</strong></td>
           <td>L${e.lyrics} • V${e.vocals} • P${e.production} • O${e.originality}</td>
         `;
         tbody.appendChild(tr);
@@ -765,7 +765,7 @@
             <div class="title">${safeText(e.artist)} — ${safeText(e.track)}</div>
             <div class="sub">${genre || "—"} • ${breakdown}</div>
           </div>
-          <div class="score">${e.total}/40</div>
+          <div class="score">${e.total}/50</div>
         `;
         wrap.appendChild(row);
       });
