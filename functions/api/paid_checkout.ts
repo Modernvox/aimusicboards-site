@@ -10,6 +10,22 @@ function formEncode(params: Record<string, string | number | boolean | undefined
   return usp.toString();
 }
 
+function normalizeBaseUrl(raw: string) {
+  const trimmed = String(raw || "").trim();
+  const noTrailingSlash = trimmed.replace(/\/+$/, "");
+  // Validate absolute URL
+  let u: URL;
+  try {
+    u = new URL(noTrailingSlash);
+  } catch {
+    throw new Error("PUBLIC_BASE_URL must be a full URL like https://aimusicboards.com");
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") {
+    throw new Error("PUBLIC_BASE_URL must start with https:// (recommended) or http://");
+  }
+  return noTrailingSlash;
+}
+
 export async function onRequest(context: { request: Request; env: Env }) {
   if (context.request.method !== "POST") return bad("Method not allowed", 405);
 
@@ -27,19 +43,32 @@ export async function onRequest(context: { request: Request; env: Env }) {
   if (paid_type !== "SKIP" && paid_type !== "UPNEXT") return bad("Invalid paid_type");
 
   const secret = context.env.STRIPE_SECRET_KEY;
-  const baseUrl = context.env.PUBLIC_BASE_URL;
+  const baseUrlRaw = String(context.env.PUBLIC_BASE_URL || "");
 
   if (!secret) return bad("Server missing STRIPE_SECRET_KEY", 500);
-  if (!baseUrl) return bad("Server missing PUBLIC_BASE_URL", 500);
+  if (!baseUrlRaw.trim()) return bad("Server missing PUBLIC_BASE_URL", 500);
+
+  let baseUrl: string;
+  try {
+    baseUrl = normalizeBaseUrl(baseUrlRaw);
+  } catch (e: any) {
+    return bad(`Server misconfigured: ${e?.message || "Invalid PUBLIC_BASE_URL"}`, 500);
+  }
+
+  const successUrl = `${baseUrl}/submit.html?paid=success`;
+  const cancelUrl = `${baseUrl}/submit.html?paid=cancel`;
 
   const amount = paid_type === "UPNEXT" ? 2000 : 500;
-  const label = paid_type === "UPNEXT" ? "Up Next (Priority Review)" : "Skip the Line (Priority Review)";
+  const label =
+    paid_type === "UPNEXT"
+      ? "Up Next (Priority Review)"
+      : "Skip the Line (Priority Review)";
 
   // Create a Stripe Checkout Session via Stripe API (no Stripe SDK)
   const stripeResp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${secret}`,
+      Authorization: `Bearer ${secret}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: formEncode({
@@ -56,8 +85,8 @@ export async function onRequest(context: { request: Request; env: Env }) {
       "metadata[submission_id]": submission_id,
       "metadata[paid_type]": paid_type,
 
-      success_url: `${baseUrl}/submit.html?paid=success`,
-      cancel_url: `${baseUrl}/submit.html?paid=cancel`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
     }),
   });
 
@@ -85,7 +114,9 @@ export async function onRequest(context: { request: Request; env: Env }) {
         paid_type = ?,
         stripe_session_id = ?
     WHERE id = ?
-  `).bind(paid_type, sessionId, submission_id).run();
+  `)
+    .bind(paid_type, sessionId, submission_id)
+    .run();
 
   return json({ ok: true, checkout_url: checkoutUrl, stripe_session_id: sessionId });
 }
