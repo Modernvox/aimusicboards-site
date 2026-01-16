@@ -166,11 +166,33 @@
       gap: 10px;
     }
 
-    /* Optional: keep content away from extreme edges on some captures */
     .safeHint {
       color: rgba(255,255,255,0.5);
       font-weight: 700;
       font-size: 11px;
+    }
+
+    /* Animations */
+    .fadeOut {
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .fadeIn {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.24s ease, transform 0.24s ease;
+    }
+
+    .pulse {
+      animation: pulse 0.28s ease-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.08); }
+      100% { transform: scale(1); }
     }
   </style>
 </head>
@@ -184,7 +206,7 @@
         <div class="badge live">LIVE</div>
       </div>
 
-      <div class="np">
+      <div class="np" id="npWrap">
         <div>
           <div class="np-artist" id="np-artist">Waiting for track…</div>
           <div class="np-track" id="np-track">—</div>
@@ -206,7 +228,6 @@
       </div>
     </div>
 
-    <!-- Spacer row for layout balance -->
     <div></div>
 
     <!-- LEADERBOARD -->
@@ -223,52 +244,97 @@
 
   <script>
     const API = "https://aimusicboards.com";
+    let lastNowPlayingId = null;
+    let lastTotal = null;
 
     function setText(id, text) {
       const el = document.getElementById(id);
       if (el) el.textContent = text;
     }
 
-    async function fetchNowPlaying() {
-        try {
-            const res = await fetch(`${API}/api/now_playing`, { cache: 'no-store' });
-            const data = await res.json();
+    function animateSwap(el, doSwap) {
+      if (!el) return doSwap();
 
-            const np = data.now_playing || null;
-            if (!np) return;
+      el.classList.remove("fadeIn");
+      el.classList.add("fadeOut");
 
-            setText("np-artist", np.artist_name || "—");
-            setText("np-track", np.track_title || "—");
-
-            const lyrics = Number(np.lyrics || 0);
-            const delivery = Number(np.delivery || 0);
-            const production = Number(np.production || 0);
-            const originality = Number(np.originality || 0);
-            const replay = Number(np.replay || 0);
-
-            const total = lyrics + delivery + production + originality + replay;
-
-            setText("v-lyrics", lyrics);
-            setText("v-delivery", delivery);
-            setText("v-production", production);
-            setText("v-originality", originality);
-            setText("v-replay", replay);
-            setText("v-total", total);
-            setText("totalBig", total);
-
-            const verdict = document.getElementById("verdict");
-            if (total >= 30) {
-                verdict.textContent = "Approved";
-                verdict.className = "verdict approved";
-            } else {
-                verdict.textContent = "Rejected";
-                verdict.className = "verdict rejected";
-            }
-        } catch (e) {
-            console.error("now_playing err:", e);
-        }
+      setTimeout(() => {
+        doSwap();
+        el.classList.remove("fadeOut");
+        el.classList.add("fadeIn");
+        setTimeout(() => el.classList.remove("fadeIn"), 260);
+      }, 190);
     }
 
+    function pulse(el) {
+      if (!el) return;
+      el.classList.remove("pulse");
+      void el.offsetWidth;
+      el.classList.add("pulse");
+      setTimeout(() => el.classList.remove("pulse"), 260);
+    }
+
+    async function fetchNowPlaying() {
+      try {
+        const res = await fetch(`${API}/api/now_playing`, { cache: 'no-store' });
+        const data = await res.json();
+
+        const np = data.now_playing || null;
+        if (!np) return;
+
+        const currentId = np.submission_id || null;
+
+        const lyrics = Number(np.lyrics || 0);
+        const delivery = Number(np.delivery || 0);
+        const production = Number(np.production || 0);
+        const originality = Number(np.originality || 0);
+        const replay = Number(np.replay || 0);
+        const total = lyrics + delivery + production + originality + replay;
+
+        const verdict = document.getElementById("verdict");
+        const wrap = document.getElementById("npWrap");
+        const totalBig = document.getElementById("totalBig");
+
+        const applyAll = () => {
+          setText("np-artist", np.artist_name || "—");
+          setText("np-track", np.track_title || "—");
+
+          setText("v-lyrics", lyrics);
+          setText("v-delivery", delivery);
+          setText("v-production", production);
+          setText("v-originality", originality);
+          setText("v-replay", replay);
+          setText("v-total", total);
+          setText("totalBig", total);
+
+          if (total >= 30) {
+            verdict.textContent = "Approved";
+            verdict.className = "verdict approved";
+          } else {
+            verdict.textContent = "Rejected";
+            verdict.className = "verdict rejected";
+          }
+        };
+
+        if (currentId && currentId !== lastNowPlayingId) {
+          lastNowPlayingId = currentId;
+          lastTotal = total;
+          animateSwap(wrap, applyAll);
+          return;
+        }
+
+        applyAll();
+
+        if (lastTotal !== null && total !== lastTotal) {
+          pulse(totalBig);
+        }
+
+        lastTotal = total;
+
+      } catch (e) {
+        console.error("now_playing err:", e);
+      }
+    }
 
     async function fetchLeaderboard() {
       try {
