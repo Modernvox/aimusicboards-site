@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Music Board — TikTok Vertical Overlay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: rgba(0,0,0,0.62);
+      --panel: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.18);
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.72);
+      --accent: #d4af37;
+      --green: #2ecc71;
+      --red: #e74c3c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+    }
+
+    /* TikTok vertical canvas: 1080 x 1920 */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      padding: 18px;
+      pointer-events: none;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .title {
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      font-size: 18px;
+      text-transform: uppercase;
+    }
+
+    .badge {
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid var(--border);
+    }
+    .badge.live { color: var(--green); border-color: rgba(46, 204, 113, 0.55); }
+
+    .np {
+      display: grid;
+      gap: 10px;
+    }
+
+    .np-artist {
+      font-weight: 900;
+      font-size: 24px;
+      line-height: 1.05;
+      word-break: break-word;
+    }
+
+    .np-track {
+      font-size: 16px;
+      color: var(--muted);
+      word-break: break-word;
+    }
+
+    .scores {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .score-pill {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .score-pill span:first-child { color: var(--muted); font-weight: 800; }
+
+    .totalBox {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      margin-top: 8px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .totalNum {
+      font-size: 44px;
+      font-weight: 1000;
+      letter-spacing: 0.02em;
+    }
+
+    .verdict {
+      font-weight: 1000;
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: right;
+    }
+    .verdict.approved { color: var(--green); }
+    .verdict.rejected { color: var(--red); }
+
+    /* Leaderboard sits lower (TikTok-safe; avoids typical UI top area) */
+    .lb-title {
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 26px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rank { color: var(--accent); font-weight: 1000; }
+    .artist { font-weight: 900; }
+    .track { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .score { font-weight: 1000; font-size: 18px; }
+
+    .footer {
+      opacity: 0.85;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    /* Optional: keep content away from extreme edges on some captures */
+    .safeHint {
+      color: rgba(255,255,255,0.5);
+      font-weight: 700;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+
+    <!-- NOW PLAYING / SCORING -->
+    <div class="card">
+      <div class="header">
+        <div class="title">AI Music Board</div>
+        <div class="badge live">LIVE</div>
+      </div>
+
+      <div class="np">
+        <div>
+          <div class="np-artist" id="np-artist">Waiting for track…</div>
+          <div class="np-track" id="np-track">—</div>
+        </div>
+
+        <div class="scores">
+          <div class="score-pill"><span>Lyrics</span><span id="v-lyrics">0</span></div>
+          <div class="score-pill"><span>Delivery</span><span id="v-delivery">0</span></div>
+          <div class="score-pill"><span>Production</span><span id="v-production">0</span></div>
+          <div class="score-pill"><span>Originality</span><span id="v-originality">0</span></div>
+          <div class="score-pill"><span>Replay</span><span id="v-replay">0</span></div>
+          <div class="score-pill"><span>Total</span><span id="v-total">0</span></div>
+        </div>
+
+        <div class="totalBox">
+          <div class="totalNum" id="totalBig">0</div>
+          <div id="verdict" class="verdict rejected">Rejected</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spacer row for layout balance -->
+    <div></div>
+
+    <!-- LEADERBOARD -->
+    <div class="card">
+      <div class="lb-title">Top Board</div>
+      <div id="leaderboard"></div>
+      <div class="footer">
+        <div>aimusicboards.com</div>
+        <div class="safeHint">TikTok 9:16</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = "https://aimusicboards.com";
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    async function fetchNowPlaying() {
+      // NOTE: This is a public overlay. It cannot call admin endpoints that require ADMIN_TOKEN.
+      // If your /api/admin_queue requires auth, we should add a public /api/now_playing endpoint.
+      // If /api/admin_queue is public in your current setup, this will work as-is.
+
+      try {
+        const res = await fetch(`${API}/api/admin_queue`, { cache: 'no-store' });
+        const data = await res.json();
+
+        const items = data.items || [];
+        const current = items.find(i => i.status === 'IN_REVIEW') || items[0];
+        if (!current) return;
+
+        setText("np-artist", current.artist_name || "—");
+        setText("np-track", current.track_title || "—");
+
+        // If your queue items don't include live score fields, these will remain 0.
+        const lyrics = Number(current.lyrics || 0);
+        const delivery = Number(current.delivery || 0);
+        const production = Number(current.production || 0);
+        const originality = Number(current.originality || 0);
+        const replay = Number(current.replay || 0);
+
+        const total = lyrics + delivery + production + originality + replay;
+
+        setText("v-lyrics", lyrics);
+        setText("v-delivery", delivery);
+        setText("v-production", production);
+        setText("v-originality", originality);
+        setText("v-replay", replay);
+        setText("v-total", total);
+        setText("totalBig", total);
+
+        const verdict = document.getElementById("verdict");
+        if (total >= 30) {
+          verdict.textContent = "Approved";
+          verdict.className = "verdict approved";
+        } else {
+          verdict.textContent = "Rejected";
+          verdict.className = "verdict rejected";
+        }
+      } catch (e) {
+        // If this fails, we’ll switch overlay to use a public now_playing endpoint.
+        console.error("now_playing err:", e);
+      }
+    }
+
+    async function fetchLeaderboard() {
+      try {
+        const res = await fetch(`${API}/api/board`, { cache: 'no-store' });
+        const data = await res.json();
+
+        const root = document.getElementById("leaderboard");
+        root.innerHTML = "";
+
+        (data.items || []).slice(0, 5).forEach((row, idx) => {
+          const div = document.createElement("div");
+          div.className = "lb-row";
+          div.innerHTML = `
+            <div class="rank">${idx + 1}</div>
+            <div>
+              <div class="artist">${row.artist_name || "—"}</div>
+              <div class="track">${row.track_title || "—"}</div>
+            </div>
+            <div class="score">${row.total ?? ""}</div>
+          `;
+          root.appendChild(div);
+        });
+      } catch (e) {
+        console.error("board err:", e);
+      }
+    }
+
+    async function tick() {
+      await fetchNowPlaying();
+      await fetchLeaderboard();
+    }
+
+    tick();
+    setInterval(tick, 2000);
+  </script>
+</body>
+</html>
