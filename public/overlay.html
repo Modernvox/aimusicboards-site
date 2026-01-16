@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Music Board — Live Overlay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: rgba(0,0,0,0.65);
+      --panel: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.18);
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.7);
+      --accent: #d4af37;
+      --green: #2ecc71;
+      --red: #e74c3c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      padding: 16px;
+      pointer-events: none;
+    }
+
+    .card {
+      background: var(--bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .title {
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      font-size: 18px;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid var(--border);
+    }
+
+    .badge.live { color: var(--green); border-color: rgba(46, 204, 113, 0.5); }
+
+    .now-playing {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .np-meta {
+      display: grid;
+      gap: 6px;
+    }
+
+    .np-artist {
+      font-weight: 800;
+      font-size: 20px;
+    }
+
+    .np-track {
+      font-size: 16px;
+      color: var(--muted);
+    }
+
+    .scores {
+      display: grid;
+      grid-template-columns: repeat(5, auto);
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .score-pill {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-weight: 700;
+    }
+
+    .total {
+      font-size: 22px;
+      font-weight: 900;
+      text-align: right;
+      padding-left: 10px;
+    }
+
+    .verdict.approved { color: var(--green); }
+    .verdict.rejected { color: var(--red); }
+
+    .leaderboard {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      width: 360px;
+    }
+
+    .lb-title {
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rank { color: var(--accent); font-weight: 900; }
+    .artist { font-weight: 700; }
+    .track { color: var(--muted); font-size: 12px; }
+    .score { font-weight: 900; }
+
+    .footer {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      opacity: 0.8;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+
+    <!-- NOW PLAYING / SCORING PANEL -->
+    <div class="card" style="max-width: 520px;">
+      <div class="header">
+        <div class="title">AI MUSIC REVIEW BOARD</div>
+        <div class="badge live">LIVE</div>
+      </div>
+
+      <div class="now-playing">
+        <div class="np-meta">
+          <div class="np-artist" id="np-artist">Waiting for track…</div>
+          <div class="np-track" id="np-track">—</div>
+
+          <div class="scores">
+            <div class="score-pill" id="s-lyrics">Lyrics: 0</div>
+            <div class="score-pill" id="s-delivery">Delivery: 0</div>
+            <div class="score-pill" id="s-production">Production: 0</div>
+            <div class="score-pill" id="s-originality">Originality: 0</div>
+            <div class="score-pill" id="s-replay">Replay: 0</div>
+          </div>
+        </div>
+
+        <div class="total">
+          <div id="total">0</div>
+          <div id="verdict" class="verdict rejected">REJECTED</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD PANEL -->
+    <div class="card leaderboard">
+      <div class="lb-title">TOP BOARD</div>
+      <div id="leaderboard"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">aimusicboards.com</div>
+
+  </div>
+
+  <script>
+    const API = "https://aimusicboards.com";
+
+    async function fetchNowPlaying() {
+      // This endpoint should return the currently claimed/active item with any live scores
+      // If you don't have a dedicated endpoint yet, we can adapt this to your existing APIs
+      try {
+        const res = await fetch(`${API}/api/admin_queue`, { cache: 'no-store' });
+        const data = await res.json();
+
+        // Pick the first IN_REVIEW item if present, else the first item
+        const items = data.items || [];
+        const current = items.find(i => i.status === 'IN_REVIEW') || items[0];
+
+        if (!current) return;
+
+        document.getElementById('np-artist').textContent = current.artist_name;
+        document.getElementById('np-track').textContent = current.track_title;
+
+        // If your API returns live score fields, map them here
+        const lyrics = current.lyrics || 0;
+        const delivery = current.delivery || 0;
+        const production = current.production || 0;
+        const originality = current.originality || 0;
+        const replay = current.replay || 0;
+
+        document.getElementById('s-lyrics').textContent = `Lyrics: ${lyrics}`;
+        document.getElementById('s-delivery').textContent = `Delivery: ${delivery}`;
+        document.getElementById('s-production').textContent = `Production: ${production}`;
+        document.getElementById('s-originality').textContent = `Originality: ${originality}`;
+        document.getElementById('s-replay').textContent = `Replay: ${replay}`;
+
+        const total = lyrics + delivery + production + originality + replay;
+        document.getElementById('total').textContent = total;
+
+        const verdict = document.getElementById('verdict');
+        if (total >= 30) {
+          verdict.textContent = 'APPROVED';
+          verdict.className = 'verdict approved';
+        } else {
+          verdict.textContent = 'REJECTED';
+          verdict.className = 'verdict rejected';
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function fetchLeaderboard() {
+      try {
+        const res = await fetch(`${API}/api/board`, { cache: 'no-store' });
+        const data = await res.json();
+
+        const root = document.getElementById('leaderboard');
+        root.innerHTML = '';
+
+        (data.items || []).slice(0, 5).forEach((row, idx) => {
+          const div = document.createElement('div');
+          div.className = 'lb-row';
+          div.innerHTML = `
+            <div class="rank">${idx + 1}</div>
+            <div>
+              <div class="artist">${row.artist_name}</div>
+              <div class="track">${row.track_title}</div>
+            </div>
+            <div class="score">${row.total}</div>
+          `;
+          root.appendChild(div);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function tick() {
+      await fetchNowPlaying();
+      await fetchLeaderboard();
+    }
+
+    tick();
+    setInterval(tick, 2000);
+  </script>
+</body>
+</html>
