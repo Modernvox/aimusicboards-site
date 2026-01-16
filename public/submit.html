@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Submit • AI Music Boards</title>
-<link rel="icon" href="/favicon.ico?v=2" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/site.webmanifest?v=2">
+  <link rel="icon" href="/favicon.ico?v=2" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+  <link rel="manifest" href="/site.webmanifest?v=2">
 
   <style>
     body{background:#0b0b0f;color:#fff;font-family:Inter,system-ui,Arial;margin:0}
@@ -71,7 +71,7 @@
     .btn-upnext{background:#d4af37;color:#000}
     .hint{margin:10px 0 0;font-size:13px;line-height:1.4}
 
-    /* NEW: Fairness notice */
+    /* Fairness notice */
     .notice {
       margin-top: 12px;
       padding: 12px;
@@ -82,6 +82,9 @@
       line-height: 1.4;
     }
     .notice strong { color: #d4af37; }
+
+    /* NEW: file helper text */
+    .filehint{margin:8px 0 0;font-size:13px;line-height:1.4}
   </style>
 </head>
 <body>
@@ -101,8 +104,13 @@
         <label>Genre</label>
         <input name="genre" required placeholder="R&B, Rap, Rock, Pop, etc." />
 
-        <label>Track link (Suno / SoundCloud / etc.)</label>
-        <input name="track_url" required placeholder="https://..." />
+        <!-- UPDATED: file upload instead of external link -->
+        <label>Upload track (MP3/WAV only)</label>
+        <input id="track_file" type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" required />
+        <p class="muted filehint">Max 15MB. Only MP3 or WAV.</p>
+
+        <!-- Keep track_url field but hidden for compatibility: we will set it to audio_url -->
+        <input type="hidden" name="track_url" id="track_url" value="" />
 
         <label>Notes (optional)</label>
         <textarea name="notes" rows="4" placeholder="Anything you want Mike to know…"></textarea>
@@ -120,7 +128,7 @@
           </label>
         </div>
 
-        <!-- NEW: Priority selection -->
+        <!-- Priority selection -->
         <label>Priority (optional)</label>
         <div class="prio-row">
           <button type="button" id="btnFree" class="btn-free">Free Submit</button>
@@ -132,11 +140,10 @@
           $5 moves your track ahead of the free queue. $20 attempts to lock the very next review slot.
         </p>
 
-        <!-- NEW: Fairness notice -->
         <div class="notice">
           <strong>Fair Play Policy:</strong>
           For fairness, two paid skips are followed by one free review.
-          </div>
+        </div>
 
         <!-- Legacy submit hidden (kept for safety) -->
         <button type="submit" id="legacySubmit" style="display:none">Submit</button>
@@ -156,6 +163,9 @@ const btnFree = document.getElementById("btnFree");
 const btnSkip = document.getElementById("btnSkip");
 const btnUpNext = document.getElementById("btnUpNext");
 
+const fileEl = document.getElementById("track_file");
+const trackUrlHidden = document.getElementById("track_url");
+
 async function refreshStatus() {
   const r = await fetch("/api/status", { cache: "no-store" });
   const j = await r.json();
@@ -179,6 +189,7 @@ function disableAll(disabled) {
     b.style.opacity = disabled ? "0.6" : "1";
     b.style.cursor = disabled ? "not-allowed" : "pointer";
   });
+  if (fileEl) fileEl.disabled = !!disabled;
 }
 
 function buildPayload() {
@@ -186,6 +197,35 @@ function buildPayload() {
   const payload = Object.fromEntries(fd.entries());
   payload.lyrics_confirmed = true;
   return payload;
+}
+
+function getSelectedFileOrThrow() {
+  const file = fileEl?.files?.[0];
+  if (!file) throw new Error("Please select an MP3 or WAV file.");
+
+  const name = (file.name || "").toLowerCase();
+  const okExt = name.endsWith(".mp3") || name.endsWith(".wav");
+  if (!okExt) throw new Error("Only MP3 or WAV files are accepted.");
+
+  // client-side size guard (server must enforce too)
+  const maxBytes = 15 * 1024 * 1024;
+  if (file.size > maxBytes) throw new Error("File too large (max 15MB).");
+
+  return file;
+}
+
+async function uploadAudioFile(file) {
+  // Worker expects multipart with field name "file"
+  const fd = new FormData();
+  fd.append("file", file);
+
+  const r = await fetch("/api/upload_audio", { method: "POST", body: fd });
+  const j = await r.json().catch(() => ({}));
+
+  if (!r.ok || !j.ok || !j.audio_url) {
+    throw new Error((j && j.error) ? j.error : "Upload failed.");
+  }
+  return j.audio_url;
 }
 
 async function createSubmission() {
@@ -196,18 +236,49 @@ async function createSubmission() {
 
   const payload = buildPayload();
 
-  if (!payload.artist_name || !payload.track_title || !payload.genre || !payload.track_url) {
+  // Required checks (track_url will be set after upload)
+  if (!payload.artist_name || !payload.track_title || !payload.genre) {
     msg.textContent = "Please fill out all required fields.";
     return null;
   }
 
-  msg.textContent = "Submitting…";
+  let file;
+  try {
+    file = getSelectedFileOrThrow();
+  } catch (e) {
+    msg.textContent = String(e.message || e);
+    return null;
+  }
+
+  msg.textContent = "Uploading audio…";
   disableAll(true);
+
+  let audioUrl;
+  try {
+    audioUrl = await uploadAudioFile(file);
+  } catch (e) {
+    msg.textContent = String(e.message || e);
+    disableAll(false);
+    return null;
+  }
+
+  // Store audioUrl into hidden track_url field (keeps backend schema unchanged)
+  if (trackUrlHidden) trackUrlHidden.value = audioUrl;
+
+  // Refresh payload now that track_url exists
+  const payload2 = buildPayload();
+  if (!payload2.track_url) {
+    msg.textContent = "Upload succeeded, but no audio URL was returned.";
+    disableAll(false);
+    return null;
+  }
+
+  msg.textContent = "Submitting…";
 
   const r = await fetch("/api/submit", {
     method: "POST",
     headers: {"content-type":"application/json"},
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload2)
   });
 
   const j = await r.json().catch(() => ({}));
@@ -247,132 +318,7 @@ btnFree?.addEventListener("click", async () => {
 
   msg.textContent = "Submitted! You’re in the queue.";
   form.reset();
-  disableAll(false);
-});
-
-btnSkip?.addEventListener("click", async () => {
-  const id = await createSubmission();
-  if (!id) return;
-  await startPaidCheckout(id, "SKIP");
-});
-
-btnUpNext?.addEventListener("click", async () => {
-  const id = await createSubmission();
-  if (!id) return;
-  await startPaidCheckout(id, "UPNEXT");
-});
-
-form?.addEventListener("submit", (e) => e.preventDefault());
-
-refreshStatus();
-setInterval(refreshStatus, 5000);
-</script>
-</body>
-</html>
-
-
-<script>
-const statusEl = document.getElementById("status");
-const form = document.getElementById("f");
-const msg = document.getElementById("msg");
-const lyricsConfirm = document.getElementById("lyricsConfirm");
-
-const btnFree = document.getElementById("btnFree");
-const btnSkip = document.getElementById("btnSkip");
-const btnUpNext = document.getElementById("btnUpNext");
-
-async function refreshStatus() {
-  const r = await fetch("/api/status", { cache: "no-store" });
-  const j = await r.json();
-  const open = !!j.submissions_open;
-
-  if (!open) {
-    statusEl.className = "status closed";
-    statusEl.textContent = "Submissions are only accepted during broadcasting.";
-    form.style.display = "none";
-  } else {
-    statusEl.className = "status open";
-    statusEl.textContent = "LIVE: Submissions are OPEN.";
-    form.style.display = "block";
-  }
-}
-
-function disableAll(disabled) {
-  [btnFree, btnSkip, btnUpNext].forEach(b => {
-    if (!b) return;
-    b.disabled = !!disabled;
-    b.style.opacity = disabled ? "0.6" : "1";
-    b.style.cursor = disabled ? "not-allowed" : "pointer";
-  });
-}
-
-function buildPayload() {
-  const fd = new FormData(form);
-  const payload = Object.fromEntries(fd.entries());
-  payload.lyrics_confirmed = true;
-  return payload;
-}
-
-async function createSubmission() {
-  if (!lyricsConfirm.checked) {
-    msg.textContent = "You must confirm that your lyrics were written by you.";
-    return null;
-  }
-
-  const payload = buildPayload();
-
-  // Basic client-side required checks (server also checks)
-  if (!payload.artist_name || !payload.track_title || !payload.genre || !payload.track_url) {
-    msg.textContent = "Please fill out all required fields.";
-    return null;
-  }
-
-  msg.textContent = "Submitting…";
-  disableAll(true);
-
-  const r = await fetch("/api/submit", {
-    method: "POST",
-    headers: {"content-type":"application/json"},
-    body: JSON.stringify(payload)
-  });
-
-  const j = await r.json().catch(() => ({}));
-
-  if (!r.ok) {
-    msg.textContent = (j && j.error) ? j.error : "Submission failed.";
-    disableAll(false);
-    return null;
-  }
-
-  return j.id;
-}
-
-async function startPaidCheckout(submissionId, paidType) {
-  msg.textContent = "Redirecting to secure checkout…";
-
-  const r = await fetch("/api/paid_checkout", {
-    method: "POST",
-    headers: {"content-type":"application/json"},
-    body: JSON.stringify({ submission_id: submissionId, paid_type: paidType })
-  });
-
-  const j = await r.json().catch(() => ({}));
-
-  if (!r.ok || !j.checkout_url) {
-    msg.textContent = (j && j.error) ? j.error : "Could not start checkout.";
-    disableAll(false);
-    return;
-  }
-
-  window.location.href = j.checkout_url;
-}
-
-btnFree?.addEventListener("click", async () => {
-  const id = await createSubmission();
-  if (!id) return;
-
-  msg.textContent = "Submitted! You’re in the queue.";
-  form.reset();
+  if (trackUrlHidden) trackUrlHidden.value = "";
   disableAll(false);
 });
 
