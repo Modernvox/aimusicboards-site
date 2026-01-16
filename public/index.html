@@ -9,11 +9,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="icon" href="/favicon.ico?v=4" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=4">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=4">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">
-  <link rel="manifest" href="/site.webmanifest?v=4">
+  <link rel="icon" href="/favicon.ico?v=2" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/site.webmanifest?v=2">
+
 
 
   <style>
@@ -492,6 +493,20 @@
       color: var(--muted);
       white-space: nowrap;
     }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px; /* space between icon and text */
+      font-weight: 900;
+      letter-spacing: 0.04em;
+    }
+
+    .brand-icon {
+      height: 1em;        /* matches text height */
+      width: auto;
+      display: block;
+    }
+
 
     .pill.hidden { display: none; }
   </style>
@@ -499,17 +514,24 @@
 <body>
 
   <div class="container">
-    <header>
-      <div>
-        <div class="brand">AI MUSIC REVIEW BOARD</div>
-        <div class="subtle">Live rankings for AI-generated music</div>
-      </div>
+<header>
+  <div>
+    <div class="brand">
+      <img 
+        src="https://imagedelivery.net/<YOUR_ACCOUNT_HASH>/adbb2a55-cf9d-461c-eeb8-14efbe76f700/public" 
+        alt="AI Music Board Logo"
+        class="brand-icon"
+      />
+      <span>AI MUSIC REVIEW BOARD</span>
+    </div>
+    <div class="subtle">Live rankings for AI-generated music</div>
+  </div>
 
-      <div class="pill-row">
-        <div class="pill hidden" id="sessionPill">Reviewed Live: —</div>
-        <div class="pill" id="lastUpdated">Updated: —</div>
-      </div>
-    </header>
+  <div class="pill-row">
+    <div class="pill hidden" id="sessionPill">Reviewed Live: —</div>
+    <div class="pill" id="lastUpdated">Updated: —</div>
+  </div>
+</header>
 
     <!-- Submission strip (clear CTA + live status) -->
     <section class="notice" aria-label="Submission information">
