@@ -123,6 +123,7 @@ class Main(QWidget):
         self.s_production = QSpinBox(); self.s_production.setRange(0, 10)
         self.s_originality = QSpinBox(); self.s_originality.setRange(0, 10)
         self.s_replay = QSpinBox(); self.s_replay.setRange(0, 10)
+        self._loaded_id: Optional[str] = None
 
         for w in [self.s_lyrics, self.s_delivery, self.s_production, self.s_originality, self.s_replay]:
             w.valueChanged.connect(self.update_total)
@@ -188,25 +189,28 @@ class Main(QWidget):
 
     def render_list(self):
         current_id = self.selected.id if self.selected else None
+
         self.list.blockSignals(True)
-        self.list.clear()
+        try:
+            self.list.clear()
 
-        for s in self.submissions:
-            tag = "💸" if s.paid else "   "
-            claim = f" • claimed by {s.claimed_by}" if s.claimed_by else ""
-            text = f"{tag} [{s.status}] {s.artist_name} — {s.track_title} ({s.genre}){claim}"
-            it = QListWidgetItem(text)
-            it.setData(Qt.UserRole, s.id)
-            self.list.addItem(it)
+            for s in self.submissions:
+                tag = "💸" if s.paid else "   "
+                claim = f" • claimed by {s.claimed_by}" if s.claimed_by else ""
+                text = f"{tag} [{s.status}] {s.artist_name} — {s.track_title} ({s.genre}){claim}"
+                it = QListWidgetItem(text)
+                it.setData(Qt.UserRole, s.id)
+                self.list.addItem(it)
 
-        self.list.blockSignals(False)
+            # reselect WHILE signals are blocked (prevents resetting scores)
+            if current_id:
+                for i in range(self.list.count()):
+                    if self.list.item(i).data(Qt.UserRole) == current_id:
+                        self.list.setCurrentRow(i)
+                        break
+        finally:
+            self.list.blockSignals(False)
 
-        # try reselect
-        if current_id:
-            for i in range(self.list.count()):
-                if self.list.item(i).data(Qt.UserRole) == current_id:
-                    self.list.setCurrentRow(i)
-                    break
 
     def on_select(self):
         items = self.list.selectedItems()
@@ -221,17 +225,25 @@ class Main(QWidget):
         s = self.selected
         if not s:
             return
+
         self.artist.setText(s.artist_name)
         self.title.setText(s.track_title)
         self.genre.setText(s.genre)
         self.link.setText(s.track_url)
         self.notes.setPlainText(s.notes or "")
 
-        # reset scoring for new selection
-        for w in [self.s_lyrics, self.s_delivery, self.s_production, self.s_originality, self.s_replay]:
-            w.blockSignals(True); w.setValue(0); w.blockSignals(False)
-        self.score_notes.setPlainText("")
+        # Only reset scoring when the selection changes
+        if self._loaded_id != s.id:
+            for w in [self.s_lyrics, self.s_delivery, self.s_production, self.s_originality, self.s_replay]:
+                w.blockSignals(True)
+                w.setValue(0)
+                w.blockSignals(False)
+
+            self.score_notes.setPlainText("")
+            self._loaded_id = s.id
+
         self.update_total()
+
 
     def open_link(self):
         if self.selected:

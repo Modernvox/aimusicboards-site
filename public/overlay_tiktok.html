@@ -230,51 +230,45 @@
     }
 
     async function fetchNowPlaying() {
-      // NOTE: This is a public overlay. It cannot call admin endpoints that require ADMIN_TOKEN.
-      // If your /api/admin_queue requires auth, we should add a public /api/now_playing endpoint.
-      // If /api/admin_queue is public in your current setup, this will work as-is.
+        try {
+            const res = await fetch(`${API}/api/now_playing`, { cache: 'no-store' });
+            const data = await res.json();
 
-      try {
-        const res = await fetch(`${API}/api/admin_queue`, { cache: 'no-store' });
-        const data = await res.json();
+            const np = data.now_playing || null;
+            if (!np) return;
 
-        const items = data.items || [];
-        const current = items.find(i => i.status === 'IN_REVIEW') || items[0];
-        if (!current) return;
+            setText("np-artist", np.artist_name || "—");
+            setText("np-track", np.track_title || "—");
 
-        setText("np-artist", current.artist_name || "—");
-        setText("np-track", current.track_title || "—");
+            const lyrics = Number(np.lyrics || 0);
+            const delivery = Number(np.delivery || 0);
+            const production = Number(np.production || 0);
+            const originality = Number(np.originality || 0);
+            const replay = Number(np.replay || 0);
 
-        // If your queue items don't include live score fields, these will remain 0.
-        const lyrics = Number(current.lyrics || 0);
-        const delivery = Number(current.delivery || 0);
-        const production = Number(current.production || 0);
-        const originality = Number(current.originality || 0);
-        const replay = Number(current.replay || 0);
+            const total = lyrics + delivery + production + originality + replay;
 
-        const total = lyrics + delivery + production + originality + replay;
+            setText("v-lyrics", lyrics);
+            setText("v-delivery", delivery);
+            setText("v-production", production);
+            setText("v-originality", originality);
+            setText("v-replay", replay);
+            setText("v-total", total);
+            setText("totalBig", total);
 
-        setText("v-lyrics", lyrics);
-        setText("v-delivery", delivery);
-        setText("v-production", production);
-        setText("v-originality", originality);
-        setText("v-replay", replay);
-        setText("v-total", total);
-        setText("totalBig", total);
-
-        const verdict = document.getElementById("verdict");
-        if (total >= 30) {
-          verdict.textContent = "Approved";
-          verdict.className = "verdict approved";
-        } else {
-          verdict.textContent = "Rejected";
-          verdict.className = "verdict rejected";
+            const verdict = document.getElementById("verdict");
+            if (total >= 30) {
+                verdict.textContent = "Approved";
+                verdict.className = "verdict approved";
+            } else {
+                verdict.textContent = "Rejected";
+                verdict.className = "verdict rejected";
+            }
+        } catch (e) {
+            console.error("now_playing err:", e);
         }
-      } catch (e) {
-        // If this fails, we’ll switch overlay to use a public now_playing endpoint.
-        console.error("now_playing err:", e);
-      }
     }
+
 
     async function fetchLeaderboard() {
       try {
