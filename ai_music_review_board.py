@@ -38,6 +38,10 @@ class Submission:
     submitted_at: str = ""  # ISO string
     status: str = "Queued"  # Queued | Reviewing | Reviewed
 
+    # NEW: paid fields (from your server/D1)
+    payment_status: str = "NONE"   # NONE | PENDING | PAID
+    paid_type: str = ""            # "" | "SKIP" | "UPNEXT"
+
 
 @dataclass
 class Entry:
@@ -92,6 +96,20 @@ def place_colors(place: int) -> Optional[QColor]:
     if place == 3:
         return QColor(52, 152, 219)
     return None
+
+
+# NEW: Paid badge helper
+def paid_badge(sub: Submission) -> str:
+    ps = (sub.payment_status or "NONE").upper().strip()
+    pt = (sub.paid_type or "").upper().strip()
+
+    if ps == "PAID" and pt == "UPNEXT":
+        return " ⭐ UP NEXT"
+    if ps == "PAID" and pt == "SKIP":
+        return " 💸 SKIP"
+    if ps == "PENDING" and pt in ("SKIP", "UPNEXT"):
+        return " ⏳ PENDING"
+    return ""
 
 
 # ----------------------------
@@ -596,7 +614,6 @@ class MainWindow(QMainWindow):
         splitter.setSizes([520, 740])
         return w
 
-
     def _build_board_page(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
@@ -736,7 +753,8 @@ class MainWindow(QMainWindow):
             main = "Nothing selected"
             sub = ""
         else:
-            main = f"{self.now_playing.artist} — {self.now_playing.track}"
+            badge = paid_badge(self.now_playing)
+            main = f"{self.now_playing.artist} — {self.now_playing.track}{badge}"
             extra = []
             if self.now_playing.genre:
                 extra.append(self.now_playing.genre)
@@ -758,7 +776,8 @@ class MainWindow(QMainWindow):
             self.banner_now.setText("Nothing selected")
             self.banner_sub.setText("Select a submission to update this banner")
         else:
-            self.banner_now.setText(f"{sub.artist} — {sub.track}")
+            badge = paid_badge(sub)
+            self.banner_now.setText(f"{sub.artist} — {sub.track}{badge}")
             extra = []
             if sub.genre:
                 extra.append(f"Genre: {sub.genre}")
@@ -794,7 +813,9 @@ class MainWindow(QMainWindow):
             genre=genre,
             link=link,
             submitted_at=now_iso(),
-            status="Queued"
+            status="Queued",
+            payment_status="NONE",
+            paid_type=""
         )
         self.submissions.append(sub)
 
@@ -903,7 +924,9 @@ class MainWindow(QMainWindow):
             genre=e.genre,
             link=e.link,
             status="Reviewed",
-            submitted_at=e.reviewed_at
+            submitted_at=e.reviewed_at,
+            payment_status="NONE",
+            paid_type=""
         ))
 
     def delete_selected_entry(self):
@@ -973,7 +996,8 @@ class MainWindow(QMainWindow):
         self.queue_list.clear()
         for sub in self.submissions:
             g = f" • {sub.genre}" if sub.genre else ""
-            label = f"[{sub.status}] {sub.artist} — {sub.track}{g}"
+            badge = paid_badge(sub)
+            label = f"[{sub.status}] {sub.artist} — {sub.track}{g}{badge}"
             if sub.link:
                 label += "  🔗"
             self.queue_list.addItem(QListWidgetItem(label))
@@ -1076,11 +1100,27 @@ class MainWindow(QMainWindow):
                 payload = json.load(f)
 
             self.board_session_num = int(payload.get("board_session_num", 1))
-            self.submissions = [Submission(**s) for s in payload.get("submissions", [])]
+
+            # Backward-compatible submission load (older sessions won't have paid fields)
+            subs = payload.get("submissions", [])
+            fixed_subs: List[Submission] = []
+            for s in subs:
+                s = dict(s or {})
+                s.setdefault("payment_status", "NONE")
+                s.setdefault("paid_type", "")
+                fixed_subs.append(Submission(**s))
+            self.submissions = fixed_subs
+
             self.entries = [Entry(**e) for e in payload.get("entries", [])]
 
             np = payload.get("now_playing")
-            self.now_playing = Submission(**np) if np else None
+            if np:
+                np = dict(np or {})
+                np.setdefault("payment_status", "NONE")
+                np.setdefault("paid_type", "")
+                self.now_playing = Submission(**np)
+            else:
+                self.now_playing = None
 
             self.host_script.setPlainText(payload.get("host_script", ""))
         except Exception as ex:
