@@ -1,98 +1,91 @@
-import { Env, json, cors, readJson, bad } from "./_util";
+// functions/api/paid_checkout.ts
+import { Env, json, bad } from "./_util";
 
-type PaidType = "REGULAR" | "SUPER";
-
-const PRICE = {
-  REGULAR: { amount: 500, label: "Skip the Line" },   // $5.00
-  SUPER:   { amount: 2000, label: "Super Skip" },     // $20.00
-};
+function formEncode(params: Record<string, string | number | boolean | undefined | null>) {
+  const usp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null) continue;
+    usp.append(k, String(v));
+  }
+  return usp.toString();
+}
 
 export async function onRequest(context: { request: Request; env: Env }) {
-  const { request, env } = context;
+  if (context.request.method !== "POST") return bad("Method not allowed", 405);
 
-  if (request.method === "OPTIONS") return cors(request);
-
-  if (request.method !== "POST") {
-    return bad("Method not allowed", 405);
+  let body: any;
+  try {
+    body = await context.request.json();
+  } catch {
+    return bad("Invalid JSON");
   }
 
-  const body = await readJson(request);
+  const submission_id = String(body.submission_id || "").trim();
+  const paid_type = String(body.paid_type || "").trim().toUpperCase(); // "SKIP" | "UPNEXT"
 
-  const paid_type = (body.paid_type || "").toString().toUpperCase() as PaidType;
-  if (paid_type !== "REGULAR" && paid_type !== "SUPER") {
-    return bad("Invalid paid_type. Use REGULAR or SUPER.");
-  }
+  if (!submission_id) return bad("Missing submission_id");
+  if (paid_type !== "SKIP" && paid_type !== "UPNEXT") return bad("Invalid paid_type");
 
-  if (body.lyrics_confirmed !== true) {
-    return bad("Lyrics acknowledgement is required.");
-  }
+  const secret = context.env.STRIPE_SECRET_KEY;
+  const baseUrl = context.env.PUBLIC_BASE_URL;
 
-  const artist_name = (body.artist_name || "").toString().trim();
-  const track_title = (body.track_title || "").toString().trim();
-  const genre = (body.genre || "").toString().trim();
-  const track_url = (body.track_url || "").toString().trim();
-  const notes = (body.notes || "").toString().trim();
+  if (!secret) return bad("Server missing STRIPE_SECRET_KEY", 500);
+  if (!baseUrl) return bad("Server missing PUBLIC_BASE_URL", 500);
 
-  if (!artist_name || !track_title || !genre || !track_url) {
-    return bad("Missing required fields.");
-  }
+  const amount = paid_type === "UPNEXT" ? 2000 : 500;
+  const label = paid_type === "UPNEXT" ? "Up Next (Priority Review)" : "Skip the Line (Priority Review)";
 
-  const id = crypto.randomUUID();
-  const created_at = new Date().toISOString();
-
-  // Insert pending submission
-  await env.DB.prepare(`
-    INSERT INTO submissions
-      (id, created_at, artist_name, track_title, genre, track_url, notes, priority, paid, status, payment_status, paid_type)
-    VALUES
-      (?, ?, ?, ?, ?, ?, ?, 0, 1, 'PENDING_PAYMENT', 'PENDING', ?)
-  `).bind(
-    id, created_at, artist_name, track_title, genre, track_url, notes || null, paid_type
-  ).run();
-
-  const stripeKey = (env as any).STRIPE_SECRET_KEY;
-  const baseUrl = (env as any).PUBLIC_BASE_URL || "https://aimusicboards.com";
-
-  if (!stripeKey) return bad("Server missing STRIPE_SECRET_KEY.");
-
-  const { amount, label } = PRICE[paid_type];
-
-  // Create Stripe Checkout Session
-  const form = new URLSearchParams();
-  form.set("mode", "payment");
-  form.set("success_url", `${baseUrl}/submit.html?paid=1&session_id={CHECKOUT_SESSION_ID}`);
-  form.set("cancel_url", `${baseUrl}/submit.html?paid=0`);
-  form.set("metadata[submission_id]", id);
-  form.set("metadata[paid_type]", paid_type);
-
-  // line item
-  form.set("line_items[0][quantity]", "1");
-  form.set("line_items[0][price_data][currency]", "usd");
-  form.set("line_items[0][price_data][unit_amount]", String(amount)); // cents :contentReference[oaicite:4]{index=4}
-  form.set("line_items[0][price_data][product_data][name]", `${label} • AI Music Board`);
-
-  const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+  // Create a Stripe Checkout Session via Stripe API (no Stripe SDK)
+  const stripeResp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${stripeKey}`,
+      "Authorization": `Bearer ${secret}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: form.toString(),
+    body: formEncode({
+      mode: "payment",
+      "payment_method_types[0]": "card",
+
+      // line_items[0]
+      "line_items[0][quantity]": 1,
+      "line_items[0][price_data][currency]": "usd",
+      "line_items[0][price_data][unit_amount]": amount,
+      "line_items[0][price_data][product_data][name]": label,
+
+      // Helpful metadata (optional but recommended)
+      "metadata[submission_id]": submission_id,
+      "metadata[paid_type]": paid_type,
+
+      success_url: `${baseUrl}/submit.html?paid=success`,
+      cancel_url: `${baseUrl}/submit.html?paid=cancel`,
+    }),
   });
 
-  const data = await resp.json<any>();
-  if (!resp.ok) {
-    // keep row for debugging but mark failed
-    await env.DB.prepare(
-      "UPDATE submissions SET payment_status='FAILED' WHERE id=?"
-    ).bind(id).run();
-    return bad(data?.error?.message || "Stripe error");
+  const stripeJson: any = await stripeResp.json().catch(() => ({}));
+
+  if (!stripeResp.ok) {
+    const msg =
+      stripeJson?.error?.message ||
+      stripeJson?.error ||
+      "Stripe checkout session create failed.";
+    return bad(msg, 500);
   }
 
-  // Save Stripe session id for webhook lookup
-  await env.DB.prepare(
-    "UPDATE submissions SET stripe_session_id=? WHERE id=?"
-  ).bind(data.id, id).run();
+  const sessionId = String(stripeJson.id || "");
+  const checkoutUrl = String(stripeJson.url || "");
 
-  return json({ ok: true, checkout_url: data.url });
+  if (!sessionId || !checkoutUrl) {
+    return bad("Stripe did not return a session URL.", 500);
+  }
+
+  // Mark submission as pending payment + store Stripe session id
+  await context.env.DB.prepare(`
+    UPDATE submissions
+    SET payment_status = 'PENDING',
+        paid_type = ?,
+        stripe_session_id = ?
+    WHERE id = ?
+  `).bind(paid_type, sessionId, submission_id).run();
+
+  return json({ ok: true, checkout_url: checkoutUrl, stripe_session_id: sessionId });
 }

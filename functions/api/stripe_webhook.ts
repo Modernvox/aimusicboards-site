@@ -1,46 +1,103 @@
-import Stripe from "stripe";
-import { Env, json } from "./_util";
+// functions/api/stripe_webhook.ts
+import { Env, json, bad } from "./_util";
 
-export const onRequestPost: PagesFunction = async ({ request, env }: { request: Request; env: Env }) => {
-  const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" });
+function parseStripeSig(sigHeader: string) {
+  // Format: t=timestamp,v1=hexsig,v1=hexsig2,...
+  const parts = sigHeader.split(",").map(s => s.trim());
+  let t = "";
+  const v1: string[] = [];
+  for (const p of parts) {
+    const [k, ...rest] = p.split("=");
+    const v = rest.join("=");
+    if (k === "t") t = v;
+    if (k === "v1") v1.push(v);
+  }
+  return { t, v1 };
+}
 
-  const sig = request.headers.get("stripe-signature");
-  const body = await request.text();
+function hexToBytes(hex: string) {
+  const clean = hex.trim();
+  if (clean.length % 2 !== 0) throw new Error("Invalid hex length");
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
 
-  if (!sig) {
-    return new Response("Missing Stripe signature", { status: 400 });
+function bytesToHex(bytes: Uint8Array) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function hmacSha256Hex(secret: string, message: string) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+  return bytesToHex(new Uint8Array(sig));
+}
+
+function timingSafeEqual(a: string, b: string) {
+  // Constant-time-ish compare for same-length strings
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
+}
+
+export async function onRequest(context: { request: Request; env: Env }) {
+  if (context.request.method !== "POST") return bad("Method not allowed", 405);
+
+  const secret = context.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) return bad("Server missing STRIPE_WEBHOOK_SECRET", 500);
+
+  const sigHeader = context.request.headers.get("stripe-signature");
+  if (!sigHeader) return bad("Missing Stripe signature", 400);
+
+  // IMPORTANT: Stripe signature must be verified against RAW body text
+  const rawBody = await context.request.text();
+
+  const { t, v1 } = parseStripeSig(sigHeader);
+  if (!t || v1.length === 0) return bad("Invalid Stripe signature header", 400);
+
+  // Optional: timestamp tolerance (5 minutes)
+  const toleranceSec = 300;
+  const nowSec = Math.floor(Date.now() / 1000);
+  const ts = parseInt(t, 10);
+  if (!Number.isFinite(ts) || Math.abs(nowSec - ts) > toleranceSec) {
+    return bad("Stale Stripe signature timestamp", 400);
   }
 
-  let event: Stripe.Event;
+  const signedPayload = `${t}.${rawBody}`;
+  const expected = await hmacSha256Hex(secret, signedPayload);
 
+  const ok = v1.some(sig => timingSafeEqual(sig, expected));
+  if (!ok) return bad("Invalid Stripe signature", 400);
+
+  // Signature verified — parse event
+  let event: any;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, env.STRIPE_WEBHOOK_SECRET);
-  } catch (err: any) {
-    console.error("Webhook signature verification failed:", err.message);
-    return new Response("Invalid signature", { status: 400 });
+    event = JSON.parse(rawBody);
+  } catch {
+    return bad("Invalid JSON body", 400);
   }
 
-  // We only care about successful checkout completion
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
+  if (event?.type === "checkout.session.completed") {
+    const session = event?.data?.object;
+    const sessionId = String(session?.id || "");
+    if (!sessionId) return bad("Missing session id", 400);
 
-    if (!session.id) {
-      return new Response("Missing session id", { status: 400 });
-    }
-
-    try {
-      await env.DB.prepare(`
-        UPDATE submissions
-        SET payment_status = 'PAID'
-        WHERE stripe_session_id = ?
-      `).bind(session.id).run();
-
-      console.log("Payment confirmed for session:", session.id);
-    } catch (dbErr) {
-      console.error("DB update failed:", dbErr);
-      return new Response("Database update failed", { status: 500 });
-    }
+    await context.env.DB.prepare(`
+      UPDATE submissions
+      SET payment_status = 'PAID'
+      WHERE stripe_session_id = ?
+    `).bind(sessionId).run();
   }
 
   return json({ received: true });
-};
+}
