@@ -3,21 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <title>AI Music Board — TikTok Overlay</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- Inter (matches the vibe in your reference) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      --glass: rgba(24,24,30,0.55);
-      --glass2: rgba(10,10,14,0.22);
-      --border: rgba(255,255,255,0.14);
+      /* layout */
+      --padX: 14px;
+      --padTop: max(14px, env(safe-area-inset-top));
+      --padLeft: max(var(--padX), env(safe-area-inset-left));
+      --padRight: max(var(--padX), env(safe-area-inset-right));
+
+      /* glass */
+      --border: rgba(255,255,255,0.13);
+      --line: rgba(255,255,255,0.10);
       --text: rgba(255,255,255,0.96);
-      --muted: rgba(255,255,255,0.70);
+      --muted: rgba(255,255,255,0.62);
+
+      --shadow: 0 18px 60px rgba(0,0,0,0.55);
+      --radius: 28px;
 
       --green: #2ecc71;
       --red: #e74c3c;
-
-      --shadow: 0 18px 55px rgba(0,0,0,0.55);
-      --radius: 26px;
     }
 
     *{ box-sizing:border-box; }
@@ -35,37 +46,44 @@
       pointer-events:none;
     }
 
-    /* TikTok safe placement: top-left, leave right UI clear */
+    /*
+      MOBILE-FIRST: full width overlay (like your screenshot),
+      BUT we keep the whole stack pinned to the top so the host has plenty of
+      vertical room below/center for facecam.
+    */
     .dock{
       position:absolute;
-      top: max(16px, env(safe-area-inset-top));
-      left: max(16px, env(safe-area-inset-left));
-      /* keep away from TikTok buttons on the right */
-      right: 170px;
-      max-width: 560px;
-      width: auto;
+      top: var(--padTop);
+      left: var(--padLeft);
+      right: var(--padRight);
       display:grid;
-      gap: 16px;
+      gap: 14px;
+      /* keeps overlay from eating the whole screen */
+      max-height: 64vh;
+      align-content:start;
     }
 
     /* Cards */
     .card{
       position: relative;
       border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(26,26,34,0.58), rgba(14,14,18,0.52));
       border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(25,25,32,0.62), rgba(12,12,16,0.56));
       box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      overflow: hidden;
+      backdrop-filter: blur(16px);
+      overflow:hidden;
+      width: 100%;
     }
+
+    /* subtle colored haze like the reference */
     .card::before{
       content:"";
       position:absolute;
-      inset:-70px -110px;
+      inset:-90px -120px;
       background:
-        radial-gradient(240px 180px at 22% 28%, rgba(255,120,160,0.18), transparent 70%),
-        radial-gradient(260px 220px at 70% 18%, rgba(140,120,255,0.16), transparent 70%),
-        radial-gradient(240px 220px at 45% 88%, rgba(255,180,90,0.15), transparent 75%);
+        radial-gradient(240px 180px at 18% 20%, rgba(255,120,160,0.18), transparent 72%),
+        radial-gradient(280px 220px at 72% 16%, rgba(140,120,255,0.16), transparent 72%),
+        radial-gradient(260px 240px at 48% 92%, rgba(255,180,90,0.14), transparent 74%);
       filter: blur(10px);
       opacity: 0.95;
       pointer-events:none;
@@ -73,45 +91,45 @@
 
     .inner{
       position: relative;
-      padding: clamp(14px, 3.4vw, 20px);
+      padding: 18px 18px 16px;
     }
 
+    /* --- Header row --- */
     .topRow{
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       justify-content:space-between;
       gap: 12px;
     }
 
-    /* Stacked title like reference */
-    .titleStack{
-      font-weight: 1000;
+    .title{
+      font-weight: 900;
       letter-spacing: .22em;
       text-transform: uppercase;
+      font-size: 24px;
       line-height: 1.05;
-      font-size: clamp(22px, 6.2vw, 34px);
       margin: 0;
-      white-space: pre-line;
+      white-space: nowrap;
     }
 
     .livePill{
       display:inline-flex;
       align-items:center;
       gap: 10px;
-      padding: clamp(8px, 2.2vw, 12px) clamp(12px, 2.8vw, 16px);
+      padding: 10px 14px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.08);
-      font-weight: 1000;
+      background: rgba(255,255,255,0.06);
+      font-weight: 900;
       letter-spacing: .14em;
       text-transform: uppercase;
-      font-size: clamp(11px, 2.8vw, 14px);
+      font-size: 12px;
       white-space: nowrap;
       flex: 0 0 auto;
     }
     .dot{
-      width: clamp(10px, 2.6vw, 12px);
-      height: clamp(10px, 2.6vw, 12px);
+      width: 12px;
+      height: 12px;
       border-radius: 999px;
       background: var(--green);
       box-shadow: 0 0 16px rgba(46,204,113,0.55);
@@ -119,112 +137,159 @@
 
     .divider{
       height: 1px;
-      background: rgba(255,255,255,0.12);
-      margin: clamp(12px, 3.2vw, 18px) 0;
+      background: var(--line);
+      margin: 14px 0;
     }
 
-    /* Artist + track */
+    /* --- Artist / genre row (matches screenshot placement) --- */
+    .artistRow{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 12px;
+    }
+
     .artist{
-      font-weight: 1000;
-      font-size: clamp(32px, 10.5vw, 54px);
-      line-height: 1.02;
-      letter-spacing: 0.01em;
-      margin-top: 2px;
-      word-break: break-word;
-    }
-    .track{
-      margin-top: clamp(6px, 1.8vw, 10px);
       font-weight: 900;
-      font-size: clamp(18px, 5.6vw, 28px);
-      color: rgba(255,255,255,0.78);
+      font-size: 42px;
+      line-height: 1.02;
+      margin: 0;
+      word-break: break-word;
+      letter-spacing: 0.01em;
+    }
+
+    .genrePill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      font-weight: 800;
+      font-size: 20px;
+      color: rgba(255,255,255,0.90);
+      min-width: 92px;
+      text-transform: lowercase;
+    }
+
+    .track{
+      margin: 8px 0 0;
+      font-weight: 700;
+      font-size: 22px;
+      color: rgba(255,255,255,0.72);
       word-break: break-word;
     }
 
-    /* Score pills row (mobile-friendly) */
+    /* --- Score tiles (look like the screenshot’s “capsules”) --- */
     .scorePills{
       display:grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: clamp(8px, 2.2vw, 14px);
-      margin-top: clamp(12px, 3.2vw, 18px);
+      gap: 12px;
+      margin-top: 16px;
     }
 
     .pillScore{
-      height: clamp(64px, 15vw, 92px);
+      height: 78px;
       border-radius: 18px;
       border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(0,0,0,0.18);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+      background: rgba(0,0,0,0.20);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.05),
+        inset 0 -18px 30px rgba(0,0,0,0.25);
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
       overflow:hidden;
-    }
-    .pillScore .lab{
-      font-weight: 1000;
-      letter-spacing: .22em;
-      color: rgba(255,255,255,0.72);
-      font-size: clamp(12px, 3.2vw, 16px);
-      line-height: 1;
-      margin-top: -2px;
-    }
-    .pillScore .val{
-      font-weight: 1000;
-      font-size: clamp(22px, 7.2vw, 40px);
-      line-height: 1;
-      margin-top: clamp(6px, 1.6vw, 10px);
-      color: rgba(255,255,255,0.94);
+      position: relative;
     }
 
-    /* Total row: wrap safely on small screens */
+    /* per-tile tint (subtle like ref) */
+    .pillScore::before{
+      content:"";
+      position:absolute;
+      inset:-30px -30px;
+      opacity: .65;
+      filter: blur(10px);
+      pointer-events:none;
+    }
+    .pillScore:nth-child(1)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(255,140,120,0.35), transparent 70%); }
+    .pillScore:nth-child(2)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(110,180,255,0.32), transparent 70%); }
+    .pillScore:nth-child(3)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(255,170,210,0.26), transparent 70%); }
+    .pillScore:nth-child(4)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(170,160,255,0.25), transparent 70%); }
+    .pillScore:nth-child(5)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(255,210,130,0.22), transparent 70%); }
+    .pillScore:nth-child(6)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(255,255,255,0.14), transparent 70%); }
+
+    .pillScore .lab{
+      font-weight: 900;
+      letter-spacing: .22em;
+      color: rgba(255,255,255,0.70);
+      font-size: 14px;
+      line-height: 1;
+      position: relative;
+    }
+    .pillScore .val{
+      font-weight: 900;
+      font-size: 34px;
+      line-height: 1;
+      margin-top: 8px;
+      color: rgba(255,255,255,0.94);
+      position: relative;
+    }
+
+    /* --- Total row --- */
     .totalRow{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap: 12px;
       flex-wrap: wrap;
-      margin-top: clamp(12px, 3.2vw, 18px);
+      margin-top: 12px;
     }
+
     .totalText{
       display:flex;
       align-items:baseline;
       gap: 10px;
-      font-weight: 1000;
+      font-weight: 900;
       letter-spacing: .18em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.78);
-      font-size: clamp(14px, 4.2vw, 18px);
+      color: rgba(255,255,255,0.70);
+      font-size: 18px;
+      white-space: nowrap;
     }
     .totalText b{
       color: rgba(255,255,255,0.96);
-      font-size: clamp(26px, 9vw, 42px);
+      font-size: 38px;
       letter-spacing: .02em;
     }
 
     .resultPill{
       display:inline-flex;
       align-items:center;
-      gap: 10px;
-      padding: clamp(10px, 2.4vw, 14px) clamp(14px, 3.2vw, 18px);
+      gap: 12px;
+      padding: 11px 18px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.14);
       background: rgba(0,0,0,0.18);
-      font-weight: 1000;
+      font-weight: 900;
       letter-spacing: .18em;
       text-transform: uppercase;
-      font-size: clamp(12px, 3.4vw, 16px);
+      font-size: 16px;
       white-space: nowrap;
       margin-left: auto;
     }
+
     .check{
-      width: clamp(18px, 4.6vw, 22px);
-      height: clamp(18px, 4.6vw, 22px);
+      width: 26px;
+      height: 26px;
       border-radius: 999px;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      font-weight: 1200;
-      font-size: clamp(12px, 3.2vw, 14px);
+      font-weight: 900;
+      font-size: 15px;
       line-height: 1;
       color: rgba(0,0,0,0.85);
     }
@@ -233,46 +298,48 @@
     .failed{ color: rgba(231,76,60,0.95); border-color: rgba(231,76,60,0.26); }
     .failed .check{ background: rgba(231,76,60,0.95); }
 
-    /* Leaderboard */
+    /* --- Leaderboard --- */
     .lbTitle{
-      font-weight: 1000;
+      font-weight: 900;
       letter-spacing: .22em;
       text-transform: uppercase;
-      font-size: clamp(16px, 5vw, 22px);
-      color: rgba(255,255,255,0.86);
+      font-size: 20px;
+      color: rgba(255,255,255,0.68);
     }
+
     .lbList{
-      margin-top: clamp(10px, 2.8vw, 14px);
+      margin-top: 12px;
       display:grid;
-      gap: clamp(10px, 2.8vw, 14px);
+      gap: 14px;
     }
+
     .lbRow{
       display:grid;
-      grid-template-columns: 40px 1fr auto;
-      gap: 12px;
+      grid-template-columns: 44px 1fr auto;
+      gap: 14px;
       align-items:center;
-      padding-top: clamp(10px, 2.6vw, 14px);
-      border-top: 1px solid rgba(255,255,255,0.12);
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.10);
     }
+
     .medal{
-      width: 30px;
-      height: 30px;
+      width: 32px;
+      height: 32px;
       border-radius: 999px;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-weight: 1100;
+      font-weight: 900;
       color: rgba(0,0,0,0.88);
       box-shadow: inset 0 0 0 2px rgba(255,255,255,0.10);
-      justify-self:start;
     }
     .m1{ background: linear-gradient(180deg, rgba(212,175,55,1), rgba(160,120,25,1)); }
     .m2{ background: linear-gradient(180deg, rgba(200,200,210,1), rgba(120,120,130,1)); }
     .m3{ background: linear-gradient(180deg, rgba(210,150,90,1), rgba(140,90,45,1)); }
 
     .lbName{
-      font-weight: 1000;
-      font-size: clamp(18px, 6vw, 30px);
+      font-weight: 900;
+      font-size: 30px;
       line-height: 1.05;
       color: rgba(255,255,255,0.92);
       overflow:hidden;
@@ -280,8 +347,8 @@
       text-overflow:ellipsis;
     }
     .lbScore{
-      font-weight: 1100;
-      font-size: clamp(18px, 6vw, 34px);
+      font-weight: 900;
+      font-size: 34px;
       color: rgba(255,255,255,0.92);
       white-space:nowrap;
     }
@@ -290,11 +357,25 @@
     #queueCounter{ display:none; }
     #chipHandle{ display:none; }
 
-    /* Extra small phones: allow dock to use almost full width */
+    /* --- Responsive tuning --- */
     @media (max-width: 420px){
+      .inner{ padding: 16px 16px 14px; }
+      .title{ font-size: 22px; }
+      .artist{ font-size: 38px; }
+      .genrePill{ font-size: 18px; min-width: 84px; }
+      .pillScore{ height: 74px; }
+      .pillScore .val{ font-size: 32px; }
+      .totalText b{ font-size: 36px; }
+      .lbName{ font-size: 28px; }
+      .lbScore{ font-size: 32px; }
+    }
+
+    /* If someone loads this on wider screens, keep it “mobile TikTok” sized */
+    @media (min-width: 560px){
       .dock{
-        right: 150px;
-        max-width: 92vw;
+        left: 18px;
+        right: auto;
+        width: 420px;
       }
     }
   </style>
@@ -309,16 +390,17 @@
         <div class="inner">
 
           <div class="topRow">
-            <div class="titleStack">AI
-MUSIC
-BOARD</div>
-
+            <div class="title">AI MUSIC BOARD</div>
             <div class="livePill"><span class="dot"></span><span>LIVE</span></div>
           </div>
 
           <div class="divider"></div>
 
-          <div class="artist" id="np-artist">Waiting…</div>
+          <div class="artistRow">
+            <div class="artist" id="np-artist">Waiting…</div>
+            <div class="genrePill" id="np-genre">—</div>
+          </div>
+
           <div class="track" id="np-track">'—'</div>
 
           <div class="scorePills" aria-label="Scores">
@@ -396,6 +478,7 @@ BOARD</div>
 
         setText("np-artist", np.artist_name || "—");
         setText("np-track", np.track_title ? `'${np.track_title}'` : "'—'");
+        setText("np-genre", (np.genre || "—").toLowerCase());
 
         setText("v-lyrics", String(lyrics));
         setText("v-delivery", String(delivery));
