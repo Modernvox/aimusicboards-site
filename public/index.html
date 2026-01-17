@@ -773,13 +773,13 @@
             <div class="livepill"><span class="dot"></span> Live Now</div>
             <div class="thumb" aria-label="Live thumbnail"></div>
             <p class="liveartist">Now Playing updates above</p>
-            <a class="btn primary" href="#watch">Watch Live</a>
+            <a class="btn primary" href="https://www.tiktok.com/@snapink.official" target="_blank" rel="noopener">Watch Live</a>
           </div>
         </aside>
       </section>
 
       <!-- HIGHLIGHTS -->
-      <section class="section">
+      <section class="section" id="highlights">
         <div class="section-title">Top Performance Highlights</div>
 
         <div class="tiles">
@@ -835,37 +835,41 @@
   <script>
     const QUALIFYING_MIN = 30;
 
+    function setBadgeState(open) {
+      const badge = document.getElementById("submitBadge");
+      const dot = document.getElementById("liveDot");
+      const text = document.getElementById("liveText");
+      const btn = document.getElementById("submitBtn");
+
+      if (!badge || !dot || !text || !btn) return;
+
+      // IMPORTANT: do NOT overwrite badge innerHTML (it contains dot + text)
+      if (open) {
+        badge.style.borderColor = "rgba(46,204,113,0.35)";
+        badge.style.background = "rgba(46,204,113,0.10)";
+        dot.classList.add("on");
+        text.textContent = "Status: LIVE (Accepting submissions)";
+        btn.textContent = "Submit your song (LIVE)";
+        btn.href = "/submit";
+      } else {
+        badge.style.borderColor = "rgba(231,76,60,0.35)";
+        badge.style.background = "rgba(231,76,60,0.10)";
+        dot.classList.remove("on");
+        text.textContent = "Status: OFFLINE (Closed)";
+        btn.textContent = "Submit your song";
+        btn.href = "/submit";
+      }
+    }
+
     async function loadLiveStatus() {
       try {
         const res = await fetch("/api/status", { cache: "no-store" });
         const data = await res.json();
-
-        const open = !!data.submissions_open;
-
-        const badge = document.getElementById("submitBadge");
-        const dot = document.getElementById("liveDot");
-        const text = document.getElementById("liveText");
-        const btn = document.getElementById("submitBtn");
-
-        if (open) {
-          badge.textContent = "LIVE: Submissions are OPEN";
-          badge.style.borderColor = "rgba(46,204,113,0.35)";
-          badge.style.background = "rgba(46,204,113,0.10)";
-          dot.classList.add("on");
-          text.textContent = "Status: LIVE (Accepting submissions)";
-          btn.textContent = "Submit your song (LIVE)";
-        } else {
-          badge.textContent = "OFFLINE: Submissions are CLOSED";
-          badge.style.borderColor = "rgba(231,76,60,0.35)";
-          badge.style.background = "rgba(231,76,60,0.10)";
-          dot.classList.remove("on");
-          text.textContent = "Status: OFFLINE (Closed)";
-          btn.textContent = "Submit your song";
-        }
+        setBadgeState(!!data.submissions_open);
       } catch (e) {
-        const badge = document.getElementById("submitBadge");
+        // fallback without breaking layout
+        setBadgeState(false);
         const text = document.getElementById("liveText");
-        if (badge) badge.textContent = "Submissions: status unavailable";
         if (text) text.textContent = "Status: —";
       }
     }
@@ -876,17 +880,22 @@
         const data = await res.json();
         const np = data.now_playing || null;
 
+        const npMain = document.getElementById("npMain");
+        const npSub = document.getElementById("npSub");
+        if (!npMain || !npSub) return;
+
         if (np && (np.artist_name || np.track_title)) {
-          document.getElementById("npMain").textContent =
-            `${np.artist_name || "—"} — ${np.track_title || "—"}`;
+          npMain.textContent = `${np.artist_name || "—"} — ${np.track_title || "—"}`;
 
           const sub = [];
           if (np.genre) sub.push(np.genre);
-          if (np.submission_id) sub.push("LIVE REVIEW");
-          document.getElementById("npSub").textContent = sub.join(" • ");
+          if (np.paid_type) sub.push(np.paid_type === "SUPER" ? "SUPER SKIP" : "PAID SKIP");
+          else if (np.submission_id) sub.push("LIVE REVIEW");
+
+          npSub.textContent = sub.join(" • ");
         } else {
-          document.getElementById("npMain").textContent = "Nothing selected";
-          document.getElementById("npSub").textContent = "";
+          npMain.textContent = "Nothing selected";
+          npSub.textContent = "";
         }
       } catch (e) {
         // keep silent; homepage should still work
@@ -895,11 +904,13 @@
 
     async function loadLeaderboard() {
       try {
-        const res = await fetch("leaderboard.json", { cache: "no-store" });
+        const res = await fetch("/leaderboard.json", { cache: "no-store" });
         const data = await res.json();
 
-        document.getElementById("lastUpdated").textContent =
-          "Updated: " + new Date(data.updated_at).toLocaleString();
+        const lastUpdated = document.getElementById("lastUpdated");
+        if (lastUpdated && data.updated_at) {
+          lastUpdated.textContent = "Updated: " + new Date(data.updated_at).toLocaleString();
+        }
 
         const sessionText =
           data.board_session ||
@@ -910,30 +921,28 @@
         const sessionPill = document.getElementById("sessionPill");
         const sessionLine = document.getElementById("sessionLine");
 
-        if (sessionText && sessionText.trim().length) {
-          sessionPill.classList.remove("hidden");
-          sessionPill.textContent = "Reviewed Live: " + sessionText;
+        if (sessionPill && sessionLine) {
+          if (sessionText && sessionText.trim().length) {
+            sessionPill.classList.remove("hidden");
+            sessionPill.textContent = "Reviewed Live: " + sessionText;
 
-          sessionLine.style.display = "block";
-          sessionLine.textContent = "Reviewed Live — " + sessionText;
-        } else {
-          sessionPill.classList.add("hidden");
-          sessionLine.style.display = "none";
-          sessionLine.textContent = "";
+            sessionLine.style.display = "block";
+            sessionLine.textContent = "Reviewed Live — " + sessionText;
+          } else {
+            sessionPill.classList.add("hidden");
+            sessionLine.style.display = "none";
+            sessionLine.textContent = "";
+          }
         }
 
         // Only show qualifying (>=30)
         const entries = (data.leaderboard || []).filter(e => (e.total ?? 0) >= QUALIFYING_MIN);
 
-        // Top 3 cards
         renderPodium("top1", entries[0], 1);
         renderPodium("top2", entries[1], 2);
         renderPodium("top3", entries[2], 3);
 
-        // Desktop table
         renderTable(entries);
-
-        // Mobile list
         renderMobile(entries);
 
       } catch (err) {
@@ -947,25 +956,37 @@
 
     function renderPodium(id, entry, rank) {
       const el = document.getElementById(id);
+      if (!el) return;
+
       if (!entry) {
         el.innerHTML = "<div class='rank'>—</div><div class='track'>No entry</div><div class='meta'></div><div class='score'>—</div>";
         return;
       }
 
+      // Support both schema styles: vocals vs delivery, total scale
+      const lyrics = entry.lyrics ?? 0;
+      const vocals = entry.vocals ?? entry.delivery ?? 0;
+      const production = entry.production ?? 0;
+      const originality = entry.originality ?? 0;
+
+      const denom = entry.denom ?? entry.scale ?? entry.max_total ?? 50; // fallback
       const genre = safeText(entry.genre);
-      const breakdown = `L${entry.lyrics} • V${entry.vocals} • P${entry.production} • O${entry.originality}`;
+
+      const breakdown = `L${lyrics} • V${vocals} • P${production} • O${originality}`;
 
       el.innerHTML = `
         <div class="rank">#${rank}</div>
         <div class="track">${safeText(entry.artist)} — ${safeText(entry.track)}</div>
         <div class="meta">${genre || "—"}</div>
-        <div class="score">${entry.total}/50</div>
+        <div class="score">${entry.total}/${denom}</div>
         <div class="meta">${breakdown}</div>
       `;
     }
 
     function renderTable(entries) {
       const tbody = document.getElementById("leaderboardBody");
+      if (!tbody) return;
+
       tbody.innerHTML = "";
 
       entries.slice(0, 50).forEach((e, i) => {
@@ -974,13 +995,20 @@
         if (i === 1) tr.classList.add("rank-2");
         if (i === 2) tr.classList.add("rank-3");
 
+        const lyrics = e.lyrics ?? 0;
+        const vocals = e.vocals ?? e.delivery ?? 0;
+        const production = e.production ?? 0;
+        const originality = e.originality ?? 0;
+
+        const denom = e.denom ?? e.scale ?? e.max_total ?? 50;
+
         tr.innerHTML = `
           <td>${i + 1}</td>
           <td>${safeText(e.artist)}</td>
           <td>${safeText(e.track)}</td>
           <td>${safeText(e.genre)}</td>
-          <td><strong>${e.total}/50</strong></td>
-          <td>L${e.lyrics} • V${e.vocals} • P${e.production} • O${e.originality}</td>
+          <td><strong>${e.total}/${denom}</strong></td>
+          <td>L${lyrics} • V${vocals} • P${production} • O${originality}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -988,14 +1016,23 @@
 
     function renderMobile(entries) {
       const wrap = document.getElementById("leaderboardMobile");
+      if (!wrap) return;
+
       wrap.innerHTML = "";
 
       entries.slice(0, 50).forEach((e, i) => {
         const row = document.createElement("div");
         row.className = "entry" + (i === 0 ? " gold" : i === 1 ? " green" : i === 2 ? " blue" : "");
 
-        const breakdown = `L${e.lyrics} • V${e.vocals} • P${e.production} • O${e.originality}`;
+        const lyrics = e.lyrics ?? 0;
+        const vocals = e.vocals ?? e.delivery ?? 0;
+        const production = e.production ?? 0;
+        const originality = e.originality ?? 0;
+
+        const breakdown = `L${lyrics} • V${vocals} • P${production} • O${originality}`;
         const genre = safeText(e.genre);
+
+        const denom = e.denom ?? e.scale ?? e.max_total ?? 50;
 
         row.innerHTML = `
           <div class="r">#${i + 1}</div>
@@ -1003,7 +1040,7 @@
             <div class="title">${safeText(e.artist)} — ${safeText(e.track)}</div>
             <div class="sub">${genre || "—"} • ${breakdown}</div>
           </div>
-          <div class="score">${e.total}/50</div>
+          <div class="score">${e.total}/${denom}</div>
         `;
         wrap.appendChild(row);
       });
@@ -1013,9 +1050,9 @@
     loadNowPlaying();
     loadLeaderboard();
 
-    setInterval(loadLiveStatus, 5000);    // live status (submit open/closed)
-    setInterval(loadNowPlaying, 2000);    // now playing (overlay-driven)
-    setInterval(loadLeaderboard, 15000);  // leaderboard refresh
+    setInterval(loadLiveStatus, 5000);
+    setInterval(loadNowPlaying, 2000);
+    setInterval(loadLeaderboard, 15000);
   </script>
 </body>
 </html>
