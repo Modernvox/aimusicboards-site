@@ -1,488 +1,496 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI Music Board — TikTok Overlay</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Music Boards – TikTok Live Overlay</title>
   <style>
     :root{
-      /* -------- SCALE (shrink the whole UI without changing full width) -------- */
-      /* 0.74–0.86 is the sweet spot for TikTok mobile overlays */
-      --ui: 0.78;
+      --w: 1080;
+      --h: 1920;
 
-      /* safe area */
-      --padX: 12px;
-      --padTop: max(10px, env(safe-area-inset-top));
-      --padLeft: max(var(--padX), env(safe-area-inset-left));
-      --padRight: max(var(--padX), env(safe-area-inset-right));
+      --safeTop: 220px;
+      --safeBottom: 260px;
 
-      /* glass */
-      --border: rgba(255,255,255,0.13);
-      --line: rgba(255,255,255,0.10);
-      --text: rgba(255,255,255,0.96);
-      --muted: rgba(255,255,255,0.62);
+      --panel: rgba(0,0,0,.62);
+      --panel2: rgba(0,0,0,.48);
+      --border: rgba(255,255,255,.16);
+      --text: rgba(255,255,255,.95);
+      --muted: rgba(255,255,255,.72);
+      --muted2: rgba(255,255,255,.55);
 
-      --shadow: 0 18px 60px rgba(0,0,0,0.55);
-      --radius: 24px;
-
+      --gold: #d4af37;
+      --red: #ff3b30;
       --green: #2ecc71;
-      --red: #e74c3c;
+      --blue: #5aa2ff;
 
-      /* base sizes (unscaled) */
-      --cardPadX: 18px;
-      --cardPadY: 16px;
-      --gap: 14px;
+      --radius: 16px;
+      --shadow: 0 16px 40px rgba(0,0,0,.35);
 
-      --title: 24px;
-      --pillText: 12px;
-
-      --artist: 42px;
-      --track: 22px;
-      --genre: 20px;
-
-      --tileH: 78px;
-      --tileLab: 14px;
-      --tileVal: 34px;
-
-      --totalLabel: 18px;
-      --totalVal: 38px;
-      --verdict: 16px;
-
-      --lbTitle: 20px;
-      --lbName: 30px;
-      --lbScore: 34px;
+      --base: 18px;
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
     }
 
-    *{ box-sizing:border-box; }
+    @media (min-width: 720px){ :root{ --base: clamp(16px, 1.4vw, 20px); } }
+    @media (min-width: 1000px){ :root{ --base: clamp(18px, 1.1vw, 22px); } }
+
+    *{ box-sizing: border-box; }
+    html, body { height:100%; }
     body{
       margin:0;
-      background:transparent;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-family: var(--font);
       color: var(--text);
-    }
-
-    .hud{
-      position: fixed;
-      inset: 0;
-      pointer-events:none;
-    }
-
-    /* Full width, but compact height + more room for the host */
-    .dock{
-      position:absolute;
-      top: var(--padTop);
-      left: var(--padLeft);
-      right: var(--padRight);
-      display:grid;
-      gap: calc(var(--gap) * var(--ui));
-      align-content:start;
-
-      /* KEY: keep overlay compact so it doesn't eat the viewport */
-      max-height: 44vh;
-    }
-
-    .card{
-      position: relative;
-      width: 100%;
-      border-radius: calc(var(--radius) * var(--ui));
-      border: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(25,25,32,0.62), rgba(12,12,16,0.56));
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(16px);
+      background: transparent;
       overflow:hidden;
     }
-    .card::before{
+
+    .stage{
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .safe-guides::before,
+    .safe-guides::after{
       content:"";
       position:absolute;
-      inset:-90px -120px;
-      background:
-        radial-gradient(240px 180px at 18% 20%, rgba(255,120,160,0.18), transparent 72%),
-        radial-gradient(280px 220px at 72% 16%, rgba(140,120,255,0.16), transparent 72%),
-        radial-gradient(260px 240px at 48% 92%, rgba(255,180,90,0.14), transparent 74%);
-      filter: blur(10px);
-      opacity: 0.95;
+      left:0; right:0;
       pointer-events:none;
+      z-index:1;
+    }
+    .safe-guides::before{
+      top:0; height: var(--safeTop);
+      background: linear-gradient(to bottom, rgba(255,255,255,.08), rgba(255,255,255,0));
+    }
+    .safe-guides::after{
+      bottom:0; height: var(--safeBottom);
+      background: linear-gradient(to top, rgba(255,255,255,.08), rgba(255,255,255,0));
     }
 
-    .inner{
-      position: relative;
-      padding:
-        calc(var(--cardPadY) * var(--ui))
-        calc(var(--cardPadX) * var(--ui));
-    }
-
-    .topRow{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-    }
-
-    .title{
-      font-weight: 900;
-      letter-spacing: .22em;
-      text-transform: uppercase;
-      font-size: calc(var(--title) * var(--ui));
-      line-height: 1.05;
-      margin: 0;
-      white-space: nowrap;
-    }
-
-    .livePill{
-      display:inline-flex;
-      align-items:center;
-      gap: 9px;
-      padding: calc(10px * var(--ui)) calc(14px * var(--ui));
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      font-weight: 900;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      font-size: calc(var(--pillText) * var(--ui));
-      white-space: nowrap;
-      flex: 0 0 auto;
-    }
-    .dot{
-      width: calc(12px * var(--ui));
-      height: calc(12px * var(--ui));
-      border-radius: 999px;
-      background: var(--green);
-      box-shadow: 0 0 16px rgba(46,204,113,0.55);
-    }
-
-    .divider{
-      height: 1px;
-      background: var(--line);
-      margin: calc(14px * var(--ui)) 0;
-    }
-
-    /* Fit artist + genre inside the box (no overflow) */
-    .artistRow{
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .artist{
-      font-weight: 900;
-      font-size: calc(var(--artist) * var(--ui));
-      line-height: 1.02;
-      margin: 0;
-      min-width: 0;
-      overflow:hidden;
-      white-space:nowrap;
-      text-overflow:ellipsis;
-      letter-spacing: 0.01em;
-      max-width: 68%;
-    }
-
-    .genrePill{
-      flex: 0 0 auto;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding: calc(10px * var(--ui)) calc(16px * var(--ui));
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      font-weight: 800;
-      font-size: calc(var(--genre) * var(--ui));
-      color: rgba(255,255,255,0.90);
-      min-width: calc(92px * var(--ui));
-      text-transform: lowercase;
-      white-space:nowrap;
-    }
-
-    .track{
-      margin: calc(8px * var(--ui)) 0 0;
-      font-weight: 700;
-      font-size: calc(var(--track) * var(--ui));
-      color: rgba(255,255,255,0.72);
-      overflow:hidden;
-      white-space:nowrap;
-      text-overflow:ellipsis;
-    }
-
-    /* --- Score tiles: keep numbers inside boxes --- */
-    .scorePills{
-      display:grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: calc(12px * var(--ui));
-      margin-top: calc(16px * var(--ui));
-    }
-
-    .pillScore{
-      height: calc(var(--tileH) * var(--ui));
-      border-radius: calc(18px * var(--ui));
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(0,0,0,0.20);
-      box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,0.05),
-        inset 0 -18px 30px rgba(0,0,0,0.25);
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-      position: relative;
-      min-width: 0;
-    }
-
-    .pillScore::before{
-      content:"";
+    .overlay{
       position:absolute;
-      inset:-30px -30px;
-      opacity: .65;
-      filter: blur(10px);
-      pointer-events:none;
-    }
-    .pillScore:nth-child(1)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(255,140,120,0.35), transparent 70%); }
-    .pillScore:nth-child(2)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(110,180,255,0.32), transparent 70%); }
-    .pillScore:nth-child(3)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(255,170,210,0.26), transparent 70%); }
-    .pillScore:nth-child(4)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(170,160,255,0.25), transparent 70%); }
-    .pillScore:nth-child(5)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(255,210,130,0.22), transparent 70%); }
-    .pillScore:nth-child(6)::before{ background: radial-gradient(140px 120px at 25% 25%, rgba(255,255,255,0.14), transparent 70%); }
-
-    .pillScore .lab{
-      font-weight: 900;
-      letter-spacing: .22em;
-      color: rgba(255,255,255,0.70);
-      font-size: calc(var(--tileLab) * var(--ui));
-      line-height: 1;
-      position: relative;
-    }
-    .pillScore .val{
-      font-weight: 900;
-      font-size: calc(var(--tileVal) * var(--ui));
-      line-height: 1;
-      margin-top: calc(8px * var(--ui));
-      color: rgba(255,255,255,0.94);
-      position: relative;
+      inset:0;
+      z-index: 5;
     }
 
-    .totalRow{
+    .status-bar{
+      position:absolute;
+      top: calc(var(--safeTop) - 56px);
+      left: 50%;
+      transform: translateX(-50%);
       display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: calc(12px * var(--ui));
-    }
-
-    .totalText{
-      display:flex;
-      align-items:baseline;
-      gap: 10px;
-      font-weight: 900;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.70);
-      font-size: calc(var(--totalLabel) * var(--ui));
-      white-space: nowrap;
-    }
-    .totalText b{
-      color: rgba(255,255,255,0.96);
-      font-size: calc(var(--totalVal) * var(--ui));
-      letter-spacing: .02em;
-    }
-
-    .resultPill{
-      display:inline-flex;
       align-items:center;
       gap: 12px;
-      padding: calc(11px * var(--ui)) calc(18px * var(--ui));
+      padding: 10px 16px;
+      background: rgba(0,0,0,.55);
+      border: 1px solid var(--border);
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(0,0,0,0.18);
-      font-weight: 900;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      font-size: calc(var(--verdict) * var(--ui));
+      backdrop-filter: blur(6px);
+      box-shadow: var(--shadow);
+      letter-spacing: .4px;
+      font-size: calc(var(--base) * .85);
       white-space: nowrap;
-      margin-left: auto;
+    }
+    .live-dot{
+      width:10px; height:10px; border-radius:50%;
+      background: var(--red);
+      box-shadow: 0 0 18px rgba(255,59,48,.55);
+    }
+    .brand{
+      font-weight: 800;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.92);
+    }
+    .sep{ opacity:.5; }
+
+    .stack{
+      position:absolute;
+      left: 56px;
+      top: calc(var(--safeTop) + 110px);
+      width: min(720px, 72vw);
+      display:flex;
+      flex-direction: column;
+      gap: 14px;
     }
 
-    .check{
-      width: calc(26px * var(--ui));
-      height: calc(26px * var(--ui));
-      border-radius: 999px;
+    .panel{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      overflow:hidden;
+    }
+
+    .now{
+      padding: 16px 18px;
+    }
+    .kicker{
+      font-size: calc(var(--base) * .78);
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--muted2);
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .pill{
       display:inline-flex;
       align-items:center;
-      justify-content:center;
-      font-weight: 900;
-      font-size: calc(15px * var(--ui));
-      line-height: 1;
-      color: rgba(0,0,0,0.85);
-    }
-    .passed{ color: rgba(46,204,113,0.95); border-color: rgba(46,204,113,0.26); }
-    .passed .check{ background: rgba(46,204,113,0.95); }
-    .failed{ color: rgba(231,76,60,0.95); border-color: rgba(231,76,60,0.26); }
-    .failed .check{ background: rgba(231,76,60,0.95); }
-
-    /* --- Leaderboard compact --- */
-    .lbTitle{
-      font-weight: 900;
-      letter-spacing: .22em;
-      text-transform: uppercase;
-      font-size: calc(var(--lbTitle) * var(--ui));
-      color: rgba(255,255,255,0.68);
-    }
-
-    .lbList{
-      margin-top: calc(12px * var(--ui));
-      display:grid;
-      gap: calc(14px * var(--ui));
-    }
-
-    .lbRow{
-      display:grid;
-      grid-template-columns: calc(44px * var(--ui)) 1fr auto;
-      gap: calc(14px * var(--ui));
-      align-items:center;
-      padding-top: calc(12px * var(--ui));
-      border-top: 1px solid rgba(255,255,255,0.10);
-      min-width: 0;
-    }
-
-    .medal{
-      width: calc(32px * var(--ui));
-      height: calc(32px * var(--ui));
+      gap:8px;
+      padding: 6px 10px;
       border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.82);
+      font-size: calc(var(--base) * .75);
+    }
+    .row{
+      display:flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: calc(var(--base) * .98);
+      line-height: 1.2;
+    }
+    .label{
+      color: var(--muted);
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .value{
+      font-weight: 800;
+      color: rgba(255,255,255,.96);
+    }
+    .track-title{
+      font-weight: 700;
+      color: rgba(255,255,255,.9);
+    }
+
+    .scores{
+      padding: 0;
+    }
+    .scores-header{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .scores-header h3{
+      margin:0;
+      font-size: calc(var(--base) * .92);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.90);
+    }
+    .qualify{
+      font-size: calc(var(--base) * .78);
+      color: rgba(255,255,255,.78);
+    }
+    .qualify b{ color: var(--gold); }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 90px;
+      gap: 0;
+    }
+    .cell{
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      font-size: calc(var(--base) * .98);
+    }
+    .cell.cat{
+      color: rgba(255,255,255,.88);
+      font-weight: 700;
+    }
+    .cell.num{
+      text-align:right;
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+    .cell:last-child,
+    .grid > .cell:nth-last-child(2){
+      border-bottom: none;
+    }
+
+    .s-low{ color: var(--red); }
+    .s-mid{ color: rgba(255,255,255,.92); }
+    .s-high{ color: var(--gold); }
+
+    .verdict{
+      position:absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(var(--safeBottom) + 34px);
+      width: min(920px, 88vw);
+      height: 84px;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-weight: 900;
-      color: rgba(0,0,0,0.88);
-      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.10);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      font-weight: 1000;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-size: calc(var(--base) * 1.35);
+      opacity: 0;
+      pointer-events:none;
     }
-    .m1{ background: linear-gradient(180deg, rgba(212,175,55,1), rgba(160,120,25,1)); }
-    .m2{ background: linear-gradient(180deg, rgba(200,200,210,1), rgba(120,120,130,1)); }
-    .m3{ background: linear-gradient(180deg, rgba(210,150,90,1), rgba(140,90,45,1)); }
-
-    .lbName{
+    .verdict[data-state="rejected"]{
+      opacity: 1;
+      border-color: rgba(255,59,48,.40);
+      box-shadow: 0 18px 40px rgba(0,0,0,.42), 0 0 26px rgba(255,59,48,.20);
+      color: rgba(255,255,255,.96);
+    }
+    .verdict[data-state="accepted"]{
+      opacity: 1;
+      border-color: rgba(46,204,113,.40);
+      box-shadow: 0 18px 40px rgba(0,0,0,.42), 0 0 26px rgba(46,204,113,.18);
+      color: rgba(255,255,255,.96);
+    }
+    .verdict[data-state="qualified"]{
+      opacity: 1;
+      border-color: rgba(212,175,55,.45);
+      box-shadow: 0 18px 40px rgba(0,0,0,.42), 0 0 28px rgba(212,175,55,.20);
+      color: rgba(255,255,255,.96);
+    }
+    .verdict .tag{
+      padding: 8px 14px;
+      border-radius: 999px;
+      margin-left: 14px;
+      font-size: calc(var(--base) * .78);
       font-weight: 900;
-      font-size: calc(var(--lbName) * var(--ui));
-      line-height: 1.05;
-      color: rgba(255,255,255,0.92);
+      letter-spacing: 1px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.86);
+    }
+
+    .mini-board{
+      position:absolute;
+      right: 46px;
+      top: calc(var(--safeTop) + 120px);
+      width: min(420px, 38vw);
+      opacity: 0;
+      pointer-events:none;
+    }
+    .mini-board[data-show="1"]{ opacity: 1; }
+
+    .mini-head{
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+    }
+    .mini-head .title{
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      font-size: calc(var(--base) * .9);
+    }
+    .mini-head .rule{
+      font-size: calc(var(--base) * .72);
+      color: rgba(255,255,255,.70);
+    }
+    .mini-list{
+      display:flex;
+      flex-direction: column;
+    }
+    .mini-item{
+      display:grid;
+      grid-template-columns: 34px 1fr 72px;
+      gap: 10px;
+      align-items:center;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      font-size: calc(var(--base) * .92);
+    }
+    .mini-item:last-child{ border-bottom:none; }
+    .rank{
+      font-weight: 900;
+      color: rgba(255,255,255,.82);
+    }
+    .name{
+      font-weight: 800;
+      color: rgba(255,255,255,.90);
       overflow:hidden;
-      white-space:nowrap;
-      text-overflow:ellipsis;
-      min-width: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .lbScore{
+    .score{
+      text-align:right;
       font-weight: 900;
-      font-size: calc(var(--lbScore) * var(--ui));
-      color: rgba(255,255,255,0.92);
-      white-space:nowrap;
+      color: rgba(255,255,255,.90);
+    }
+    .mini-item[data-top="1"] .rank,
+    .mini-item[data-top="1"] .score{
+      color: var(--gold);
     }
 
-    /* Hidden compatibility elements */
-    #queueCounter{ display:none; }
-    #chipHandle{ display:none; }
-
-    /* Extra-small phones: shrink just a bit more */
-    @media (max-width: 380px){
-      :root{ --ui: 0.72; }
-    }
-
-    /* Slightly larger phones: allow a touch bigger */
-    @media (min-width: 430px){
-      :root{ --ui: 0.82; }
+    @media (max-width: 520px){
+      :root{ --safeTop: 200px; --safeBottom: 290px; }
+      .stack{ left: 18px; width: 86vw; }
+      .mini-board{ right: 18px; width: 56vw; top: calc(var(--safeTop) + 280px); }
+      .status-bar{ top: calc(var(--safeTop) - 54px); }
     }
   </style>
 </head>
 
 <body>
-  <div class="hud">
-    <div class="dock">
+  <div class="stage safe-guides">
+    <div class="overlay">
 
-      <!-- NOW PLAYING / SCORING -->
-      <div class="card" id="npCard">
-        <div class="inner">
-
-          <div class="topRow">
-            <div class="title">AI MUSIC BOARD</div>
-            <div class="livePill"><span class="dot"></span><span>LIVE</span></div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="artistRow">
-            <div class="artist" id="np-artist">Waiting…</div>
-            <div class="genrePill" id="np-genre">—</div>
-          </div>
-
-          <div class="track" id="np-track">'—'</div>
-
-          <div class="scorePills" aria-label="Scores">
-            <div class="pillScore"><div class="lab">L</div><div class="val" id="v-lyrics">0</div></div>
-            <div class="pillScore"><div class="lab">D</div><div class="val" id="v-delivery">0</div></div>
-            <div class="pillScore"><div class="lab">P</div><div class="val" id="v-production">0</div></div>
-            <div class="pillScore"><div class="lab">O</div><div class="val" id="v-originality">0</div></div>
-            <div class="pillScore"><div class="lab">R</div><div class="val" id="v-replay">0</div></div>
-            <div class="pillScore"><div class="lab">T</div><div class="val" id="v-total">0</div></div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="totalRow">
-            <div class="totalText">TOTAL: <b id="totalBig">0</b></div>
-
-            <div class="resultPill passed" id="verdictPill">
-              <span class="check" id="verdictCheck">✓</span>
-              <span id="verdict">PASSED</span>
-            </div>
-          </div>
-
-          <!-- compatibility (hidden) -->
-          <div id="queueCounter">Queue: <strong>—</strong></div>
-          <div id="chipHandle"></div>
-
-        </div>
+      <div class="status-bar" aria-label="status">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span class="brand" id="brandText">AI MUSIC BOARDS</span>
+        <span class="sep">|</span>
+        <span id="statusText">LIVE</span>
       </div>
 
-      <!-- TOP 3 TODAY -->
-      <div class="card">
-        <div class="inner">
-          <div class="lbTitle">TOP 3 TODAY</div>
-          <div class="lbList" id="leaderboard"></div>
-        </div>
+      <div class="stack">
+        <section class="panel now" aria-label="now reviewing">
+          <div class="kicker">
+            <span class="pill">NOW REVIEWING</span>
+            <span class="pill" id="sessionPill">Queue: —</span>
+          </div>
+
+          <div class="row">
+            <div><span class="label">Artist:</span> <span class="value" id="artistName">WAITING…</span></div>
+            <div><span class="label">Track:</span> <span class="track-title" id="trackTitle">“—”</span></div>
+          </div>
+        </section>
+
+        <section class="panel scores" aria-label="scores">
+          <div class="scores-header">
+            <h3>SCORES</h3>
+            <div class="qualify">Each 1–10 • Combined <b id="qualifyRule">30+</b> to hit leaderboard</div>
+          </div>
+
+          <div class="grid" role="table" aria-label="score grid">
+            <div class="cell cat">Lyrics</div>
+            <div class="cell num s-mid" id="scoreLyrics">0</div>
+
+            <div class="cell cat">Delivery</div>
+            <div class="cell num s-mid" id="scoreDelivery">0</div>
+
+            <div class="cell cat">Originality</div>
+            <div class="cell num s-mid" id="scoreOriginality">0</div>
+
+            <div class="cell cat">Repeatability</div>
+            <div class="cell num s-mid" id="scoreRepeatability">0</div>
+
+            <div class="cell cat">Production</div>
+            <div class="cell num s-mid" id="scoreProduction">0</div>
+          </div>
+        </section>
       </div>
+
+      <div class="verdict" id="verdictBar" data-state="">
+        <span id="verdictText">—</span>
+        <span class="tag" id="verdictTag">—</span>
+      </div>
+
+      <aside class="panel mini-board" id="miniBoard" data-show="1" aria-label="leaderboard">
+        <div class="mini-head">
+          <div class="title">LEADERBOARD</div>
+          <div class="rule">30+ to qualify</div>
+        </div>
+
+        <div class="mini-list">
+          <div class="mini-item" data-top="1">
+            <div class="rank">1</div>
+            <div class="name" id="lb1Name">—</div>
+            <div class="score" id="lb1Score">—</div>
+          </div>
+
+          <div class="mini-item">
+            <div class="rank">2</div>
+            <div class="name" id="lb2Name">—</div>
+            <div class="score" id="lb2Score">—</div>
+          </div>
+
+          <div class="mini-item">
+            <div class="rank">3</div>
+            <div class="name" id="lb3Name">—</div>
+            <div class="score" id="lb3Score">—</div>
+          </div>
+        </div>
+      </aside>
 
     </div>
   </div>
 
   <script>
+    // ===== Config =====
     const API = "https://aimusicboards.com";
+    const POLL_MS = 2000;
+    const QUALIFY_MIN = 30;
 
-    function setText(id, text) {
-      const el = document.getElementById(id);
+    // ===== Helpers =====
+    function $(id){ return document.getElementById(id); }
+
+    function setText(id, text){
+      const el = $(id);
       if (el) el.textContent = text;
     }
 
-    async function fetchStatus() {
-      try {
-        const res = await fetch(`${API}/api/status`, { cache: "no-store" });
-        const data = await res.json();
-        const qc = document.getElementById("queueCounter");
-        if (qc) qc.innerHTML = `Queue: <strong>${data.queue_count ?? "—"}</strong>`;
-      } catch {}
+    function scoreClass(n){
+      const v = Number(n || 0);
+      if (v <= 3) return "s-low";
+      if (v >= 8) return "s-high";
+      return "s-mid";
     }
 
-    async function fetchNowPlaying() {
-      try {
+    function setScore(id, n){
+      const el = $(id);
+      if (!el) return;
+      el.textContent = String(n ?? 0);
+      el.classList.remove("s-low","s-mid","s-high");
+      el.classList.add(scoreClass(n));
+    }
+
+    function setVerdict(state, text, tag){
+      const bar = $("verdictBar");
+      if (!bar) return;
+      bar.setAttribute("data-state", state || "");
+      setText("verdictText", text || "—");
+      setText("verdictTag", tag || "—");
+    }
+
+    // ===== API Pollers =====
+    async function fetchStatus(){
+      try{
+        const res = await fetch(`${API}/api/status`, { cache: "no-store" });
+        const data = await res.json();
+        const q = data.queue_count ?? "—";
+        setText("sessionPill", `Queue: ${q}`);
+      }catch(e){}
+    }
+
+    async function fetchNowPlaying(){
+      try{
         const res = await fetch(`${API}/api/now_playing`, { cache: "no-store" });
         const data = await res.json();
         const np = data.now_playing || null;
-        if (!np) return;
+
+        if (!np){
+          setText("artistName","WAITING…");
+          setText("trackTitle","“—”");
+          setScore("scoreLyrics",0);
+          setScore("scoreDelivery",0);
+          setScore("scoreOriginality",0);
+          setScore("scoreRepeatability",0);
+          setScore("scoreProduction",0);
+          setVerdict("", "—", "—");
+          return;
+        }
 
         const lyrics = Number(np.lyrics || 0);
         const delivery = Number(np.delivery || 0);
@@ -490,77 +498,70 @@
         const originality = Number(np.originality || 0);
         const replay = Number(np.replay || 0);
 
+        // Your previous overlay computed total from 5 buckets (lyrics+delivery+production+originality+replay)
         const computedTotal = lyrics + delivery + production + originality + replay;
         const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
 
-        const approved = total >= 30;
+        setText("artistName", (np.artist_name || "—").toUpperCase());
+        const t = np.track_title ? `“${np.track_title}”` : "“—”";
+        setText("trackTitle", t);
 
-        setText("np-artist", np.artist_name || "—");
-        setText("np-track", np.track_title ? `'${np.track_title}'` : "'—'");
-        setText("np-genre", (np.genre || "—").toLowerCase());
+        setScore("scoreLyrics", lyrics);
+        setScore("scoreDelivery", delivery);
+        setScore("scoreProduction", production);
+        setScore("scoreOriginality", originality);
+        setScore("scoreRepeatability", replay);
 
-        setText("v-lyrics", String(lyrics));
-        setText("v-delivery", String(delivery));
-        setText("v-production", String(production));
-        setText("v-originality", String(originality));
-        setText("v-replay", String(replay));
-        setText("v-total", String(total));
-        setText("totalBig", String(total));
-
-        const verdictText = document.getElementById("verdict");
-        const verdictPill = document.getElementById("verdictPill");
-        const verdictCheck = document.getElementById("verdictCheck");
-
-        if (verdictText && verdictPill && verdictCheck) {
-          if (approved) {
-            verdictText.textContent = "PASSED";
-            verdictPill.classList.remove("failed");
-            verdictPill.classList.add("passed");
-            verdictCheck.textContent = "✓";
-          } else {
-            verdictText.textContent = "FAILED";
-            verdictPill.classList.remove("passed");
-            verdictPill.classList.add("failed");
-            verdictCheck.textContent = "✕";
-          }
+        // Verdict behavior:
+        // - show ONLY when final == true (so you don't flash verdict during listening)
+        // - state: qualified if >= 30, rejected otherwise
+        const isFinal = !!np.final;
+        if (!isFinal){
+          setVerdict("", "—", "—");
+          return;
         }
-      } catch (e) {
-        console.error("now_playing err:", e);
-      }
+
+        if (total >= QUALIFY_MIN){
+          setVerdict("qualified", "QUALIFIED", "ON THE BOARD");
+        }else{
+          setVerdict("rejected", "REJECTED", "OFF THE BOARD");
+        }
+
+      }catch(e){}
     }
 
-    async function fetchLeaderboard() {
-      try {
+    async function fetchLeaderboard(){
+      try{
         const res = await fetch(`${API}/api/board`, { cache: "no-store" });
         const data = await res.json();
+        const items = (data.items || []).slice(0, 3);
 
-        const root = document.getElementById("leaderboard");
-        root.innerHTML = "";
+        // show/hide mini board
+        const mb = $("miniBoard");
+        if (mb) mb.setAttribute("data-show", items.length ? "1" : "0");
 
-        (data.items || []).slice(0, 3).forEach((row, idx) => {
-          const medalClass = idx === 0 ? "m1" : idx === 1 ? "m2" : "m3";
-          const div = document.createElement("div");
-          div.className = "lbRow";
-          div.innerHTML = `
-            <div class="medal ${medalClass}">${idx + 1}</div>
-            <div class="lbName">${row.artist_name || "—"}</div>
-            <div class="lbScore">${row.total ?? ""}</div>
-          `;
-          root.appendChild(div);
-        });
-      } catch (e) {
-        console.error("board err:", e);
-      }
+        const rows = [
+          { n:"lb1Name", s:"lb1Score" },
+          { n:"lb2Name", s:"lb2Score" },
+          { n:"lb3Name", s:"lb3Score" },
+        ];
+
+        for (let i=0; i<3; i++){
+          const it = items[i] || null;
+          setText(rows[i].n, it ? (it.artist_name || "—").toUpperCase() : "—");
+          setText(rows[i].s, it ? String(it.total ?? "—") : "—");
+        }
+      }catch(e){}
     }
 
-    async function tick() {
+    async function tick(){
       await fetchStatus();
       await fetchNowPlaying();
       await fetchLeaderboard();
     }
 
     tick();
-    setInterval(tick, 2000);
+    setInterval(tick, POLL_MS);
   </script>
 </body>
 </html>
