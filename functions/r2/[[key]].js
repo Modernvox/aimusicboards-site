@@ -1,7 +1,9 @@
-export async function onRequest(context) {
-  const { request, env, params } = context;
+import { Env, json, bad, requireAdmin } from "../api/_util";
 
-  const cors = {
+export async function onRequest(context: any) {
+  const { request, env, params } = context as { request: Request; env: Env; params: any };
+
+  const cors: Record<string, string> = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -18,6 +20,17 @@ export async function onRequest(context) {
     return new Response("Missing key", { status: 400, headers: cors });
   }
 
+  // ✅ Only previews are public. Everything else (uploads/) requires admin auth.
+  const isPreview = key.startsWith("previews/");
+
+  if (!isPreview) {
+    const err = requireAdmin(request, env);
+    if (err) {
+      // Keep response simple (don’t leak whether object exists)
+      return new Response("Unauthorized", { status: 401, headers: cors });
+    }
+  }
+
   const obj = await env.AIMB_BUCKET.get(key);
 
   if (!obj) {
@@ -26,7 +39,13 @@ export async function onRequest(context) {
 
   const headers = new Headers(cors);
   obj.writeHttpMetadata(headers);
-  headers.set("Cache-Control", "public, max-age=3600");
+
+  // Public caching for previews is fine; for uploads keep it private/no-store
+  if (isPreview) {
+    headers.set("Cache-Control", "public, max-age=3600");
+  } else {
+    headers.set("Cache-Control", "no-store");
+  }
 
   if (request.method === "HEAD") {
     return new Response(null, { headers });

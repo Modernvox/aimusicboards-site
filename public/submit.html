@@ -22,7 +22,6 @@
     .closed{background:rgba(255,0,0,.12);border:1px solid rgba(255,0,0,.35)}
     .open{background:rgba(0,255,120,.10);border:1px solid rgba(0,255,120,.30)}
 
-    /* Acknowledgement styling */
     .ack {
       margin-top: 14px;
       padding: 12px;
@@ -51,7 +50,6 @@
       line-height: 1.35;
     }
 
-    /* Priority buttons */
     .prio-row{
       display:flex;
       gap:10px;
@@ -71,7 +69,6 @@
     .btn-upnext{background:#d4af37;color:#000}
     .hint{margin:10px 0 0;font-size:13px;line-height:1.4}
 
-    /* Fairness notice */
     .notice {
       margin-top: 12px;
       padding: 12px;
@@ -83,7 +80,6 @@
     }
     .notice strong { color: #d4af37; }
 
-    /* NEW: file helper text */
     .filehint{margin:8px 0 0;font-size:13px;line-height:1.4}
   </style>
 </head>
@@ -104,18 +100,19 @@
         <label>Genre</label>
         <input name="genre" required placeholder="R&B, Rap, Rock, Pop, etc." />
 
-        <!-- UPDATED: file upload instead of external link -->
         <label>Upload track (MP3/WAV only)</label>
         <input id="track_file" type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" required />
         <p class="muted filehint">Max 15MB. Only MP3 or WAV.</p>
 
-        <!-- Keep track_url field but hidden for compatibility: we will set it to audio_url -->
+        <!-- NEW: store R2 object key (uploads/<uuid>.mp3) -->
+        <input type="hidden" name="track_key" id="track_key" value="" />
+
+        <!-- Legacy field kept but unused now -->
         <input type="hidden" name="track_url" id="track_url" value="" />
 
         <label>Notes (optional)</label>
         <textarea name="notes" rows="4" placeholder="Anything you want Mike to know…"></textarea>
 
-        <!-- Warning + Acknowledgement -->
         <div class="warning">
           <strong>Important:</strong> This board is for evaluating <em>AI music with human-written lyrics</em>.
           Submissions using fully AI-generated lyrics may be disqualified.
@@ -128,7 +125,6 @@
           </label>
         </div>
 
-        <!-- Priority selection -->
         <label>Priority (optional)</label>
         <div class="prio-row">
           <button type="button" id="btnFree" class="btn-free">Free Submit</button>
@@ -145,7 +141,6 @@
           For fairness, two paid skips are followed by one free review.
         </div>
 
-        <!-- Legacy submit hidden (kept for safety) -->
         <button type="submit" id="legacySubmit" style="display:none">Submit</button>
 
         <p id="msg" class="muted"></p>
@@ -164,6 +159,7 @@ const btnSkip = document.getElementById("btnSkip");
 const btnUpNext = document.getElementById("btnUpNext");
 
 const fileEl = document.getElementById("track_file");
+const trackKeyHidden = document.getElementById("track_key");
 const trackUrlHidden = document.getElementById("track_url");
 
 async function refreshStatus() {
@@ -207,7 +203,6 @@ function getSelectedFileOrThrow() {
   const okExt = name.endsWith(".mp3") || name.endsWith(".wav");
   if (!okExt) throw new Error("Only MP3 or WAV files are accepted.");
 
-  // client-side size guard (server must enforce too)
   const maxBytes = 15 * 1024 * 1024;
   if (file.size > maxBytes) throw new Error("File too large (max 15MB).");
 
@@ -215,17 +210,17 @@ function getSelectedFileOrThrow() {
 }
 
 async function uploadAudioFile(file) {
-  // Worker expects multipart with field name "file"
   const fd = new FormData();
   fd.append("file", file);
 
   const r = await fetch("/api/upload_audio", { method: "POST", body: fd });
   const j = await r.json().catch(() => ({}));
 
-  if (!r.ok || !j.ok || !j.audio_url) {
+  // Expect: { ok: true, key, audio_url }
+  if (!r.ok || !j.ok || !j.key) {
     throw new Error((j && j.error) ? j.error : "Upload failed.");
   }
-  return j.audio_url;
+  return { key: j.key, audio_url: j.audio_url || "" };
 }
 
 async function createSubmission() {
@@ -236,7 +231,6 @@ async function createSubmission() {
 
   const payload = buildPayload();
 
-  // Required checks (track_url will be set after upload)
   if (!payload.artist_name || !payload.track_title || !payload.genre) {
     msg.textContent = "Please fill out all required fields.";
     return null;
@@ -253,22 +247,24 @@ async function createSubmission() {
   msg.textContent = "Uploading audio…";
   disableAll(true);
 
-  let audioUrl;
+  let up;
   try {
-    audioUrl = await uploadAudioFile(file);
+    up = await uploadAudioFile(file);
   } catch (e) {
     msg.textContent = String(e.message || e);
     disableAll(false);
     return null;
   }
 
-  // Store audioUrl into hidden track_url field (keeps backend schema unchanged)
-  if (trackUrlHidden) trackUrlHidden.value = audioUrl;
+  // ✅ Store R2 key for backend
+  if (trackKeyHidden) trackKeyHidden.value = up.key;
 
-  // Refresh payload now that track_url exists
+  // Keep legacy field empty (we do NOT want to expose full URL in DB anymore)
+  if (trackUrlHidden) trackUrlHidden.value = "";
+
   const payload2 = buildPayload();
-  if (!payload2.track_url) {
-    msg.textContent = "Upload succeeded, but no audio URL was returned.";
+  if (!payload2.track_key) {
+    msg.textContent = "Upload succeeded, but no track key was returned.";
     disableAll(false);
     return null;
   }
@@ -318,6 +314,7 @@ btnFree?.addEventListener("click", async () => {
 
   msg.textContent = "Submitted! You’re in the queue.";
   form.reset();
+  if (trackKeyHidden) trackKeyHidden.value = "";
   if (trackUrlHidden) trackUrlHidden.value = "";
   disableAll(false);
 });
@@ -334,7 +331,6 @@ btnUpNext?.addEventListener("click", async () => {
   await startPaidCheckout(id, "UPNEXT");
 });
 
-// Prevent default enter-submit behavior
 form?.addEventListener("submit", (e) => e.preventDefault());
 
 refreshStatus();
