@@ -2,20 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AI Music Board — TikTok Minimal Overlay</title>
+  <title>AI Music Board — TikTok Overlay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
     :root{
-      --glass: rgba(0,0,0,0.38);
-      --glass2: rgba(0,0,0,0.26);
-      --border: rgba(255,255,255,0.18);
-      --text: rgba(255,255,255,0.94);
+      --glass: rgba(10,10,14,0.58);
+      --glass2: rgba(12,12,18,0.44);
+      --border: rgba(255,255,255,0.14);
+      --border2: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.95);
       --muted: rgba(255,255,255,0.72);
-      --gold: #d4af37;
+
       --green: #2ecc71;
       --red: #e74c3c;
+      --gold: #d4af37;
+
+      --shadow: 0 18px 55px rgba(0,0,0,0.55);
     }
+
     *{ box-sizing:border-box; }
     body{
       margin:0;
@@ -24,262 +29,373 @@
       color: var(--text);
     }
 
-    /* Safe zones for TikTok:
-       - leave right side clear (buttons)
-       - leave bottom-left somewhat clear (chat)
-    */
+    /* Full canvas */
     .hud{
       position: fixed;
       inset: 0;
       pointer-events:none;
     }
 
-    /* Top-left stack */
+    /* Put overlay where it’s practical for TikTok (top-left) */
     .dock{
       position:absolute;
-      top: 16px;
-      left: 16px;
-      width: min(520px, 62vw);
+      top: 22px;
+      left: 22px;
+      width: min(640px, 66vw);
       display:grid;
-      gap: 10px;
+      gap: 18px;
     }
 
-    .chip{
-      background: var(--glass);
-      backdrop-filter: blur(10px);
+    /* Soft bokeh glow inside cards (like your screenshot) */
+    .card{
+      position: relative;
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(20,20,26,0.60), rgba(10,10,14,0.55));
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 10px 12px;
-      box-shadow: 0 10px 26px rgba(0,0,0,0.35);
-      overflow:hidden;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-80px -120px;
+      background:
+        radial-gradient(240px 180px at 25% 35%, rgba(255,120,160,0.22), transparent 65%),
+        radial-gradient(260px 220px at 70% 25%, rgba(140,120,255,0.18), transparent 65%),
+        radial-gradient(240px 220px at 45% 82%, rgba(255,180,90,0.18), transparent 70%);
+      filter: blur(8px);
+      opacity: 0.85;
+      pointer-events:none;
     }
 
-    .row{
+    .inner{
+      position: relative;
+      padding: 18px 20px;
+    }
+
+    .topRow{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
+      gap: 12px;
     }
 
-    .brand{
+    .title{
       font-weight: 1000;
-      letter-spacing: .14em;
+      letter-spacing: .22em;
       text-transform: uppercase;
-      font-size: 12px;
-      opacity: .9;
-      white-space:nowrap;
+      font-size: 28px;
+      line-height: 1;
+      margin: 2px 0 0 0;
     }
 
     .pill{
       display:inline-flex;
       align-items:center;
-      gap:8px;
-      padding: 6px 10px;
+      gap: 10px;
+      padding: 10px 16px;
       border-radius: 999px;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border2);
       background: rgba(255,255,255,0.08);
       font-weight: 900;
-      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-size: 14px;
       white-space: nowrap;
     }
     .dot{
-      width:8px;height:8px;border-radius:999px;
+      width:12px;height:12px;border-radius:999px;
       background: var(--green);
-      box-shadow: 0 0 10px rgba(46,204,113,0.55);
+      box-shadow: 0 0 16px rgba(46,204,113,0.55);
     }
 
-    .npArtist{
-      font-weight: 1000;
-      font-size: 18px;
-      line-height: 1.1;
-      margin-top: 8px;
-      word-break: break-word;
-    }
-    .npTrack{
-      margin-top: 4px;
-      font-size: 13px;
-      color: var(--muted);
-      word-break: break-word;
+    .divider{
+      height: 1px;
+      background: rgba(255,255,255,0.12);
+      margin: 16px 0;
     }
 
-    .meta{
-      margin-top: 8px;
+    .npRow{
       display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .tag{
-      padding: 5px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(0,0,0,0.18);
-      font-size: 12px;
-      font-weight: 900;
-      color: rgba(255,255,255,0.88);
-      white-space: nowrap;
-    }
-    .tag strong{ color: var(--gold); }
-
-    /* Tiny score strip (doesn't cover screen) */
-    .scoreStrip{
-      margin-top: 10px;
-      display:grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 6px;
-    }
-    .s{
-      border: 1px solid rgba(255,255,255,0.14);
-      background: var(--glass2);
-      border-radius: 12px;
-      padding: 7px 8px;
-      display:flex;
-      flex-direction:column;
-      gap:3px;
-      min-width:0;
-    }
-    .s label{
-      font-size: 10px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.65);
-      font-weight: 900;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .s b{
-      font-size: 14px;
-      font-weight: 1000;
-      line-height: 1;
-    }
-
-    /* Verdict is small + color-coded */
-    .verdict{
-      margin-top: 10px;
-      display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
-      gap:10px;
+      gap: 14px;
     }
-    .totalBig{
-      font-weight: 1100;
-      font-size: 30px;
-      letter-spacing:.02em;
-      white-space:nowrap;
+
+    .artist{
+      font-size: 44px;
+      font-weight: 1000;
+      line-height: 1.02;
+      letter-spacing: 0.01em;
+      margin-top: 2px;
+      word-break: break-word;
     }
-    .status{
-      font-weight: 1100;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      font-size: 12px;
-      padding: 7px 10px;
+
+    .track{
+      margin-top: 8px;
+      font-size: 26px;
+      color: rgba(255,255,255,0.78);
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .genrePill{
+      margin-top: 10px;
+      padding: 12px 18px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.16);
       background: rgba(0,0,0,0.18);
-      white-space:nowrap;
+      font-weight: 900;
+      text-transform: lowercase;
+      font-size: 18px;
+      color: rgba(255,255,255,0.88);
+      align-self:flex-start;
+      min-width: 110px;
+      text-align:center;
     }
-    .status.approved{ color: var(--green); border-color: rgba(46,204,113,0.32); }
-    .status.rejected{ color: var(--red); border-color: rgba(231,76,60,0.32); }
 
-    /* Micro leaderboard (Top 3) */
+    /* Score tiles row like screenshot */
+    .tiles{
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .tile{
+      position: relative;
+      height: 88px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+      overflow:hidden;
+    }
+    .tile::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 55%);
+      opacity: 0.55;
+      pointer-events:none;
+    }
+    .tileTop{
+      position:relative;
+      padding: 10px 0 0 0;
+      text-align:center;
+      font-weight: 1000;
+      letter-spacing: .28em;
+      color: rgba(255,255,255,0.72);
+      font-size: 16px;
+    }
+    .tileVal{
+      position:relative;
+      text-align:center;
+      margin-top: 6px;
+      font-weight: 1000;
+      font-size: 40px;
+      line-height: 1;
+      color: rgba(255,255,255,0.92);
+    }
+
+    /* Total line */
+    .totalRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .totalLabel{
+      font-weight: 1000;
+      letter-spacing: .20em;
+      text-transform: uppercase;
+      font-size: 18px;
+      color: rgba(255,255,255,0.78);
+    }
+    .totalLabel b{
+      color: rgba(255,255,255,0.96);
+      font-size: 36px;
+      letter-spacing: .02em;
+      margin-left: 10px;
+    }
+
+    .resultPill{
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.18);
+      font-weight: 1000;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      font-size: 16px;
+      white-space: nowrap;
+    }
+    .check{
+      width: 18px; height: 18px;
+      border-radius: 999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 1200;
+      font-size: 14px;
+      line-height: 1;
+      color: rgba(0,0,0,0.85);
+    }
+    .passed .check{ background: rgba(46,204,113,0.95); }
+    .failed .check{ background: rgba(231,76,60,0.95); }
+    .passed{ color: rgba(46,204,113,0.95); border-color: rgba(46,204,113,0.28); }
+    .failed{ color: rgba(231,76,60,0.95); border-color: rgba(231,76,60,0.28); }
+
+    /* Leaderboard card */
     .lbTitle{
       font-weight: 1000;
-      letter-spacing: .14em;
+      letter-spacing: .22em;
       text-transform: uppercase;
-      font-size: 11px;
-      opacity: .9;
+      font-size: 22px;
+      color: rgba(255,255,255,0.86);
     }
-    .lb{
-      margin-top: 8px;
+
+    .lbList{
+      margin-top: 14px;
       display:grid;
-      gap: 8px;
+      gap: 14px;
     }
+
     .lbRow{
       display:grid;
-      grid-template-columns: 22px 1fr auto;
-      gap: 8px;
+      grid-template-columns: 46px 1fr auto;
+      gap: 16px;
       align-items:center;
-      padding: 8px 10px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(0,0,0,0.22);
-      border-radius: 14px;
+      padding: 10px 0;
+      border-top: 1px solid rgba(255,255,255,0.12);
     }
-    .rk{
-      color: var(--gold);
+    .lbRow:first-child{ border-top: 1px solid rgba(255,255,255,0.12); }
+
+    .medal{
+      width: 34px; height: 34px;
+      border-radius: 999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       font-weight: 1100;
+      color: rgba(0,0,0,0.88);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.10);
     }
-    .nm{
+    .m1{ background: linear-gradient(180deg, rgba(212,175,55,1), rgba(160,120,25,1)); }
+    .m2{ background: linear-gradient(180deg, rgba(200,200,210,1), rgba(120,120,130,1)); }
+    .m3{ background: linear-gradient(180deg, rgba(210,150,90,1), rgba(140,90,45,1)); }
+
+    .lbName{
       font-weight: 1000;
-      font-size: 12px;
-      line-height: 1.1;
+      font-size: 30px;
+      line-height: 1.05;
+      color: rgba(255,255,255,0.92);
       overflow:hidden;
       white-space:nowrap;
       text-overflow:ellipsis;
     }
-    .tt{
-      font-size: 11px;
-      color: rgba(255,255,255,0.7);
-      overflow:hidden;
-      white-space:nowrap;
-      text-overflow:ellipsis;
-      margin-top: 2px;
-    }
-    .sc{
+    .lbScore{
       font-weight: 1100;
-      font-size: 14px;
+      font-size: 34px;
+      color: rgba(255,255,255,0.92);
       white-space:nowrap;
     }
 
-    /* Keep entire right side clear for TikTok buttons */
+    /* Hide queueCounter if you don't want it visible (kept for compatibility) */
+    #queueCounter{ display:none; }
+    #chipHandle{ display:none; } /* screenshot doesn't show handle */
+
+    /* Keep right side safe for TikTok UI buttons */
     .rightSafe{
       position:absolute;
       top:0; right:0;
-      width: 160px;
+      width: 170px;
       height:100%;
       pointer-events:none;
     }
   </style>
 </head>
+
 <body>
   <div class="hud">
     <div class="dock">
 
-      <!-- NOW PLAYING (small) -->
-      <div class="chip" id="npCard">
-        <div class="row">
-          <div class="brand">AI MUSIC BOARD</div>
-          <div class="pill"><span class="dot"></span><span>LIVE</span></div>
-        </div>
+      <!-- NOW PLAYING / SCORING -->
+      <div class="card" id="npCard">
+        <div class="inner">
 
-        <div class="row" style="margin-top:8px;">
-          <div class="tag" id="queueCounter">Queue: <strong>—</strong></div>
-          <div class="tag" id="chipGenre" style="display:none;">Genre</div>
-          <div class="tag" id="chipHandle" style="display:none;">@handle</div>
-        </div>
+          <div class="topRow">
+            <div class="title">AI MUSIC BOARD</div>
+            <div class="pill"><span class="dot"></span><span>LIVE</span></div>
+          </div>
 
-        <div class="npArtist" id="np-artist">Waiting for track…</div>
-        <div class="npTrack" id="np-track">—</div>
+          <div class="divider"></div>
 
-        <div class="scoreStrip" id="scores">
-          <div class="s"><label>Lyrics</label><b id="v-lyrics">0</b></div>
-          <div class="s"><label>Delivery</label><b id="v-delivery">0</b></div>
-          <div class="s"><label>Prod</label><b id="v-production">0</b></div>
-          <div class="s"><label>Orig</label><b id="v-originality">0</b></div>
-          <div class="s"><label>Replay</label><b id="v-replay">0</b></div>
-          <div class="s"><label>Total</label><b id="v-total">0</b></div>
-        </div>
+          <div class="npRow">
+            <div>
+              <div class="artist" id="np-artist">mike stadium</div>
+              <div class="track" id="np-track">'stagnant'</div>
+            </div>
 
-        <div class="verdict">
-          <div class="totalBig" id="totalBig">0</div>
-          <div class="status rejected" id="verdict">Rejected</div>
+            <div class="genrePill" id="chipGenre" style="display:none;">rock</div>
+          </div>
+
+          <div class="tiles" aria-label="Scores">
+            <div class="tile">
+              <div class="tileTop">L</div>
+              <div class="tileVal" id="v-lyrics">0</div>
+            </div>
+            <div class="tile">
+              <div class="tileTop">D</div>
+              <div class="tileVal" id="v-delivery">0</div>
+            </div>
+            <div class="tile">
+              <div class="tileTop">P</div>
+              <div class="tileVal" id="v-production">0</div>
+            </div>
+            <div class="tile">
+              <div class="tileTop">O</div>
+              <div class="tileVal" id="v-originality">0</div>
+            </div>
+            <div class="tile">
+              <div class="tileTop">R</div>
+              <div class="tileVal" id="v-replay">0</div>
+            </div>
+            <div class="tile">
+              <div class="tileTop">T</div>
+              <div class="tileVal" id="v-total">0</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="totalRow">
+            <div class="totalLabel">TOTAL:<b id="totalBig">0</b></div>
+
+            <div class="resultPill passed" id="verdictPill">
+              <span class="check" id="verdictCheck">✓</span>
+              <span id="verdict">PASSED</span>
+            </div>
+          </div>
+
+          <!-- kept for compatibility -->
+          <div id="queueCounter">Queue: <strong>—</strong></div>
+          <div id="chipHandle"></div>
+
         </div>
       </div>
 
-      <!-- LEADERBOARD (Top 3 only) -->
-      <div class="chip">
-        <div class="lbTitle">Top Board</div>
-        <div class="lb" id="leaderboard"></div>
+      <!-- TOP 3 TODAY -->
+      <div class="card">
+        <div class="inner">
+          <div class="lbTitle">TOP 3 TODAY</div>
+
+          <div class="lbList" id="leaderboard"></div>
+        </div>
       </div>
 
     </div>
@@ -290,27 +406,9 @@
   <script>
     const API = "https://aimusicboards.com";
 
-    let lastNowPlayingId = null;
-
     function setText(id, text) {
       const el = document.getElementById(id);
       if (el) el.textContent = text;
-    }
-
-    function extractHandle(np) {
-      if (np && np.artist_handle) return np.artist_handle;
-      const candidates = [np?.artist_name || "", np?.notes || "", np?.track_title || ""].join(" ");
-      const m = candidates.match(/@\w{2,30}/);
-      return m ? m[0] : "";
-    }
-
-    async function fetchStatus() {
-      try {
-        const res = await fetch(`${API}/api/status`, { cache: "no-store" });
-        const data = await res.json();
-        const qc = document.getElementById("queueCounter");
-        if (qc) qc.innerHTML = `Queue: <strong>${data.queue_count ?? "—"}</strong>`;
-      } catch {}
     }
 
     async function fetchNowPlaying() {
@@ -320,35 +418,39 @@
         const np = data.now_playing || null;
         if (!np) return;
 
-        const currentId = np.submission_id || null;
-
         const lyrics = Number(np.lyrics || 0);
         const delivery = Number(np.delivery || 0);
         const production = Number(np.production || 0);
         const originality = Number(np.originality || 0);
         const replay = Number(np.replay || 0);
+
         const computedTotal = lyrics + delivery + production + originality + replay;
         const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
 
         const approved = total >= 30;
 
-        // chips
-        const chipGenre = document.getElementById("chipGenre");
-        const chipHandle = document.getElementById("chipHandle");
-        const handle = extractHandle(np);
-
-        if (chipGenre) {
-          if (np.genre) { chipGenre.textContent = np.genre; chipGenre.style.display = ""; }
-          else { chipGenre.style.display = "none"; }
-        }
-        if (chipHandle) {
-          if (handle) { chipHandle.textContent = handle; chipHandle.style.display = ""; }
-          else { chipHandle.style.display = "none"; }
-        }
-
-        // minimal update
         setText("np-artist", np.artist_name || "—");
-        setText("np-track", np.track_title || "—");
+        setText("np-track", np.track_title ? `'${np.track_title}'` : "—");
+
+        // genre pill (shown like screenshot)
+        const chipGenre = document.getElementCounting “PASSED/FAILED” and setting the pill style
+        const verdictText = document.getElementById("verdict");
+        const verdictPill = document.getElementById("verdictPill");
+        const verdictCheck = document.getElementById("verdictCheck");
+
+        if (verdictText && verdictPill && verdictCheck) {
+          if (approved) {
+            verdictText.textContent = "PASSED";
+            verdictPill.classList.remove("failed");
+            verdictPill.classList.add("passed");
+            verdictCheck.textContent = "✓";
+          } else {
+            verdictText.textContent = "FAILED";
+            verdictPill.classList.remove("passed");
+            verdictPill.classList.add("failed");
+            verdictCheck.textContent = "✕";
+          }
+        }
 
         setText("v-lyrics", String(lyrics));
         setText("v-delivery", String(delivery));
@@ -357,36 +459,37 @@
         setText("v-replay", String(replay));
         setText("v-total", String(total));
         setText("totalBig", String(total));
-
-        const verdictEl = document.getElementById("verdict");
-        if (verdictEl) {
-          verdictEl.textContent = approved ? "Approved" : "Rejected";
-          verdictEl.className = "status " + (approved ? "approved" : "rejected");
-        }
-
-        lastNowPlayingId = currentId;
       } catch (e) {
         console.error("now_playing err:", e);
       }
+    }
+
+    async function fetchStatus() {
+      // kept for compatibility; hidden in UI
+      try {
+        const res = await fetch(`${API}/api/status`, { cache: "no-store" });
+        const data = await res.json();
+        const qc = document.getElementById("queueCounter");
+        if (qc) qc.innerHTML = `Queue: <strong>${data.queue_count ?? "—"}</strong>`;
+      } catch {}
     }
 
     async function fetchLeaderboard() {
       try {
         const res = await fetch(`${API}/api/board`, { cache: "no-store" });
         const data = await res.json();
+
         const root = document.getElementById("leaderboard");
         root.innerHTML = "";
 
         (data.items || []).slice(0, 3).forEach((row, idx) => {
+          const medalClass = idx === 0 ? "m1" : idx === 1 ? "m2" : "m3";
           const div = document.createElement("div");
           div.className = "lbRow";
           div.innerHTML = `
-            <div class="rk">${idx + 1}</div>
-            <div>
-              <div class="nm">${row.artist_name || "—"}</div>
-              <div class="tt">${row.track_title || "—"}</div>
-            </div>
-            <div class="sc">${row.total ?? ""}</div>
+            <div class="medal ${medalClass}">${idx + 1}</div>
+            <div class="lbName">${row.artist_name || "—"}</div>
+            <div class="lbScore">${row.total ?? ""}</div>
           `;
           root.appendChild(div);
         });
