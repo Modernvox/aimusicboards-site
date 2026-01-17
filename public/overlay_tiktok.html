@@ -5,16 +5,19 @@
   <title>AI Music Board — TikTok Overlay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <!-- Inter (matches the vibe in your reference) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      /* layout */
-      --padX: 14px;
-      --padTop: max(14px, env(safe-area-inset-top));
+      /* -------- SCALE (shrink the whole UI without changing full width) -------- */
+      /* 0.74–0.86 is the sweet spot for TikTok mobile overlays */
+      --ui: 0.78;
+
+      /* safe area */
+      --padX: 12px;
+      --padTop: max(10px, env(safe-area-inset-top));
       --padLeft: max(var(--padX), env(safe-area-inset-left));
       --padRight: max(var(--padX), env(safe-area-inset-right));
 
@@ -25,10 +28,34 @@
       --muted: rgba(255,255,255,0.62);
 
       --shadow: 0 18px 60px rgba(0,0,0,0.55);
-      --radius: 28px;
+      --radius: 24px;
 
       --green: #2ecc71;
       --red: #e74c3c;
+
+      /* base sizes (unscaled) */
+      --cardPadX: 18px;
+      --cardPadY: 16px;
+      --gap: 14px;
+
+      --title: 24px;
+      --pillText: 12px;
+
+      --artist: 42px;
+      --track: 22px;
+      --genre: 20px;
+
+      --tileH: 78px;
+      --tileLab: 14px;
+      --tileVal: 34px;
+
+      --totalLabel: 18px;
+      --totalVal: 38px;
+      --verdict: 16px;
+
+      --lbTitle: 20px;
+      --lbName: 30px;
+      --lbScore: 34px;
     }
 
     *{ box-sizing:border-box; }
@@ -39,43 +66,36 @@
       color: var(--text);
     }
 
-    /* Full canvas */
     .hud{
       position: fixed;
       inset: 0;
       pointer-events:none;
     }
 
-    /*
-      MOBILE-FIRST: full width overlay (like your screenshot),
-      BUT we keep the whole stack pinned to the top so the host has plenty of
-      vertical room below/center for facecam.
-    */
+    /* Full width, but compact height + more room for the host */
     .dock{
       position:absolute;
       top: var(--padTop);
       left: var(--padLeft);
       right: var(--padRight);
       display:grid;
-      gap: 14px;
-      /* keeps overlay from eating the whole screen */
-      max-height: 64vh;
+      gap: calc(var(--gap) * var(--ui));
       align-content:start;
+
+      /* KEY: keep overlay compact so it doesn't eat the viewport */
+      max-height: 44vh;
     }
 
-    /* Cards */
     .card{
       position: relative;
-      border-radius: var(--radius);
+      width: 100%;
+      border-radius: calc(var(--radius) * var(--ui));
       border: 1px solid var(--border);
       background: linear-gradient(180deg, rgba(25,25,32,0.62), rgba(12,12,16,0.56));
       box-shadow: var(--shadow);
       backdrop-filter: blur(16px);
       overflow:hidden;
-      width: 100%;
     }
-
-    /* subtle colored haze like the reference */
     .card::before{
       content:"";
       position:absolute;
@@ -91,22 +111,23 @@
 
     .inner{
       position: relative;
-      padding: 18px 18px 16px;
+      padding:
+        calc(var(--cardPadY) * var(--ui))
+        calc(var(--cardPadX) * var(--ui));
     }
 
-    /* --- Header row --- */
     .topRow{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap: 12px;
+      gap: 10px;
     }
 
     .title{
       font-weight: 900;
       letter-spacing: .22em;
       text-transform: uppercase;
-      font-size: 24px;
+      font-size: calc(var(--title) * var(--ui));
       line-height: 1.05;
       margin: 0;
       white-space: nowrap;
@@ -115,21 +136,21 @@
     .livePill{
       display:inline-flex;
       align-items:center;
-      gap: 10px;
-      padding: 10px 14px;
+      gap: 9px;
+      padding: calc(10px * var(--ui)) calc(14px * var(--ui));
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.06);
       font-weight: 900;
       letter-spacing: .14em;
       text-transform: uppercase;
-      font-size: 12px;
+      font-size: calc(var(--pillText) * var(--ui));
       white-space: nowrap;
       flex: 0 0 auto;
     }
     .dot{
-      width: 12px;
-      height: 12px;
+      width: calc(12px * var(--ui));
+      height: calc(12px * var(--ui));
       border-radius: 999px;
       background: var(--green);
       box-shadow: 0 0 16px rgba(46,204,113,0.55);
@@ -138,60 +159,69 @@
     .divider{
       height: 1px;
       background: var(--line);
-      margin: 14px 0;
+      margin: calc(14px * var(--ui)) 0;
     }
 
-    /* --- Artist / genre row (matches screenshot placement) --- */
+    /* Fit artist + genre inside the box (no overflow) */
     .artistRow{
       display:flex;
       align-items:flex-end;
       justify-content:space-between;
-      gap: 12px;
+      gap: 10px;
+      min-width: 0;
     }
 
     .artist{
       font-weight: 900;
-      font-size: 42px;
+      font-size: calc(var(--artist) * var(--ui));
       line-height: 1.02;
       margin: 0;
-      word-break: break-word;
+      min-width: 0;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
       letter-spacing: 0.01em;
+      max-width: 68%;
     }
 
     .genrePill{
+      flex: 0 0 auto;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      padding: 10px 16px;
+      padding: calc(10px * var(--ui)) calc(16px * var(--ui));
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.06);
       font-weight: 800;
-      font-size: 20px;
+      font-size: calc(var(--genre) * var(--ui));
       color: rgba(255,255,255,0.90);
-      min-width: 92px;
+      min-width: calc(92px * var(--ui));
       text-transform: lowercase;
+      white-space:nowrap;
     }
 
     .track{
-      margin: 8px 0 0;
+      margin: calc(8px * var(--ui)) 0 0;
       font-weight: 700;
-      font-size: 22px;
+      font-size: calc(var(--track) * var(--ui));
       color: rgba(255,255,255,0.72);
-      word-break: break-word;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
     }
 
-    /* --- Score tiles (look like the screenshot’s “capsules”) --- */
+    /* --- Score tiles: keep numbers inside boxes --- */
     .scorePills{
       display:grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 16px;
+      gap: calc(12px * var(--ui));
+      margin-top: calc(16px * var(--ui));
     }
 
     .pillScore{
-      height: 78px;
-      border-radius: 18px;
+      height: calc(var(--tileH) * var(--ui));
+      border-radius: calc(18px * var(--ui));
       border: 1px solid rgba(255,255,255,0.14);
       background: rgba(0,0,0,0.20);
       box-shadow:
@@ -203,9 +233,9 @@
       justify-content:center;
       overflow:hidden;
       position: relative;
+      min-width: 0;
     }
 
-    /* per-tile tint (subtle like ref) */
     .pillScore::before{
       content:"";
       position:absolute;
@@ -225,27 +255,26 @@
       font-weight: 900;
       letter-spacing: .22em;
       color: rgba(255,255,255,0.70);
-      font-size: 14px;
+      font-size: calc(var(--tileLab) * var(--ui));
       line-height: 1;
       position: relative;
     }
     .pillScore .val{
       font-weight: 900;
-      font-size: 34px;
+      font-size: calc(var(--tileVal) * var(--ui));
       line-height: 1;
-      margin-top: 8px;
+      margin-top: calc(8px * var(--ui));
       color: rgba(255,255,255,0.94);
       position: relative;
     }
 
-    /* --- Total row --- */
     .totalRow{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
-      margin-top: 12px;
+      margin-top: calc(12px * var(--ui));
     }
 
     .totalText{
@@ -256,12 +285,12 @@
       letter-spacing: .18em;
       text-transform: uppercase;
       color: rgba(255,255,255,0.70);
-      font-size: 18px;
+      font-size: calc(var(--totalLabel) * var(--ui));
       white-space: nowrap;
     }
     .totalText b{
       color: rgba(255,255,255,0.96);
-      font-size: 38px;
+      font-size: calc(var(--totalVal) * var(--ui));
       letter-spacing: .02em;
     }
 
@@ -269,27 +298,27 @@
       display:inline-flex;
       align-items:center;
       gap: 12px;
-      padding: 11px 18px;
+      padding: calc(11px * var(--ui)) calc(18px * var(--ui));
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.14);
       background: rgba(0,0,0,0.18);
       font-weight: 900;
       letter-spacing: .18em;
       text-transform: uppercase;
-      font-size: 16px;
+      font-size: calc(var(--verdict) * var(--ui));
       white-space: nowrap;
       margin-left: auto;
     }
 
     .check{
-      width: 26px;
-      height: 26px;
+      width: calc(26px * var(--ui));
+      height: calc(26px * var(--ui));
       border-radius: 999px;
       display:inline-flex;
       align-items:center;
       justify-content:center;
       font-weight: 900;
-      font-size: 15px;
+      font-size: calc(15px * var(--ui));
       line-height: 1;
       color: rgba(0,0,0,0.85);
     }
@@ -298,33 +327,34 @@
     .failed{ color: rgba(231,76,60,0.95); border-color: rgba(231,76,60,0.26); }
     .failed .check{ background: rgba(231,76,60,0.95); }
 
-    /* --- Leaderboard --- */
+    /* --- Leaderboard compact --- */
     .lbTitle{
       font-weight: 900;
       letter-spacing: .22em;
       text-transform: uppercase;
-      font-size: 20px;
+      font-size: calc(var(--lbTitle) * var(--ui));
       color: rgba(255,255,255,0.68);
     }
 
     .lbList{
-      margin-top: 12px;
+      margin-top: calc(12px * var(--ui));
       display:grid;
-      gap: 14px;
+      gap: calc(14px * var(--ui));
     }
 
     .lbRow{
       display:grid;
-      grid-template-columns: 44px 1fr auto;
-      gap: 14px;
+      grid-template-columns: calc(44px * var(--ui)) 1fr auto;
+      gap: calc(14px * var(--ui));
       align-items:center;
-      padding-top: 12px;
+      padding-top: calc(12px * var(--ui));
       border-top: 1px solid rgba(255,255,255,0.10);
+      min-width: 0;
     }
 
     .medal{
-      width: 32px;
-      height: 32px;
+      width: calc(32px * var(--ui));
+      height: calc(32px * var(--ui));
       border-radius: 999px;
       display:flex;
       align-items:center;
@@ -339,16 +369,17 @@
 
     .lbName{
       font-weight: 900;
-      font-size: 30px;
+      font-size: calc(var(--lbName) * var(--ui));
       line-height: 1.05;
       color: rgba(255,255,255,0.92);
       overflow:hidden;
       white-space:nowrap;
       text-overflow:ellipsis;
+      min-width: 0;
     }
     .lbScore{
       font-weight: 900;
-      font-size: 34px;
+      font-size: calc(var(--lbScore) * var(--ui));
       color: rgba(255,255,255,0.92);
       white-space:nowrap;
     }
@@ -357,26 +388,14 @@
     #queueCounter{ display:none; }
     #chipHandle{ display:none; }
 
-    /* --- Responsive tuning --- */
-    @media (max-width: 420px){
-      .inner{ padding: 16px 16px 14px; }
-      .title{ font-size: 22px; }
-      .artist{ font-size: 38px; }
-      .genrePill{ font-size: 18px; min-width: 84px; }
-      .pillScore{ height: 74px; }
-      .pillScore .val{ font-size: 32px; }
-      .totalText b{ font-size: 36px; }
-      .lbName{ font-size: 28px; }
-      .lbScore{ font-size: 32px; }
+    /* Extra-small phones: shrink just a bit more */
+    @media (max-width: 380px){
+      :root{ --ui: 0.72; }
     }
 
-    /* If someone loads this on wider screens, keep it “mobile TikTok” sized */
-    @media (min-width: 560px){
-      .dock{
-        left: 18px;
-        right: auto;
-        width: 420px;
-      }
+    /* Slightly larger phones: allow a touch bigger */
+    @media (min-width: 430px){
+      :root{ --ui: 0.82; }
     }
   </style>
 </head>
