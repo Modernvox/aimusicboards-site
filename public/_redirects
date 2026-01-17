@@ -4,4 +4,9 @@
 /apple-touch-icon.png /apple-touch-icon.png 200
 /site.webmanifest /site.webmanifest 200
 
-/* / 200
+/submit /submit.html 200
+/overlay /overlay.html 200
+/overlay_tiktok /overlay_tiktok.html 200
+/board /board.html 200
+
+/* /index.html 200
