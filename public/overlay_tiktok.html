@@ -2,652 +2,306 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AI Music Board — TikTok Vertical Overlay</title>
+  <title>AI Music Board — TikTok Minimal Overlay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
- <link rel="icon" href="/favicon.ico?v=2" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/site.webmanifest?v=2">
-
 
   <style>
-    :root {
-      --bg: rgba(0,0,0,0.62);
-      --panel: rgba(255,255,255,0.08);
+    :root{
+      --glass: rgba(0,0,0,0.38);
+      --glass2: rgba(0,0,0,0.26);
       --border: rgba(255,255,255,0.18);
-      --text: #ffffff;
+      --text: rgba(255,255,255,0.94);
       --muted: rgba(255,255,255,0.72);
-      --accent: #d4af37;
+      --gold: #d4af37;
       --green: #2ecc71;
       --red: #e74c3c;
-      --goldGlow: rgba(212,175,55,0.65);
-      --greenGlow: rgba(46,204,113,0.55);
-      --redGlow: rgba(231,76,60,0.50);
     }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      background: transparent;
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      background:transparent;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       color: var(--text);
     }
 
-    /* TikTok vertical canvas: 1080 x 1920 */
-    .overlay {
-      position: absolute;
+    /* Safe zones for TikTok:
+       - leave right side clear (buttons)
+       - leave bottom-left somewhat clear (chat)
+    */
+    .hud{
+      position: fixed;
       inset: 0;
-      padding: 18px;
-      pointer-events: none;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 14px;
+      pointer-events:none;
     }
 
-    .card {
-      background: var(--bg);
+    /* Top-left stack */
+    .dock{
+      position:absolute;
+      top: 16px;
+      left: 16px;
+      width: min(520px, 62vw);
+      display:grid;
+      gap: 10px;
+    }
+
+    .chip{
+      background: var(--glass);
       backdrop-filter: blur(10px);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      position: relative;
-      overflow: hidden;
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+      overflow:hidden;
     }
 
-    /* Tier glows */
-    .tier-normal { box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
-    .tier-red {
-      border-color: rgba(231,76,60,0.55);
-      box-shadow: 0 0 0 1px rgba(231,76,60,0.20), 0 18px 40px rgba(0,0,0,0.50);
-    }
-    .tier-green {
-      border-color: rgba(46,204,113,0.70);
-      box-shadow: 0 0 0 1px rgba(46,204,113,0.22), 0 0 30px rgba(46,204,113,0.16), 0 18px 40px rgba(0,0,0,0.50);
-    }
-    .tier-gold {
-      border-color: rgba(212,175,55,0.80);
-      box-shadow: 0 0 0 1px rgba(212,175,55,0.26), 0 0 36px rgba(212,175,55,0.20), 0 18px 40px rgba(0,0,0,0.50);
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
     }
 
-    .header {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .title {
-      font-weight: 900;
-      letter-spacing: 0.04em;
-      font-size: 18px;
+    .brand{
+      font-weight: 1000;
+      letter-spacing: .14em;
       text-transform: uppercase;
+      font-size: 12px;
+      opacity: .9;
+      white-space:nowrap;
     }
 
-    .headerRight {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: flex-end;
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.08);
+      font-weight: 900;
+      font-size: 12px;
       white-space: nowrap;
     }
-
-    .badge {
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid var(--border);
-    }
-    .badge.live { color: var(--green); border-color: rgba(46, 204, 113, 0.55); }
-
-    .counter {
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 900;
-      background: rgba(0,0,0,0.22);
-      border: 1px solid rgba(255,255,255,0.14);
-      color: rgba(255,255,255,0.92);
-    }
-    .counter strong { color: var(--accent); }
-
-    .np {
-      display: grid;
-      gap: 10px;
+    .dot{
+      width:8px;height:8px;border-radius:999px;
+      background: var(--green);
+      box-shadow: 0 0 10px rgba(46,204,113,0.55);
     }
 
-    .np-artist {
-      font-weight: 900;
-      font-size: 24px;
-      line-height: 1.05;
+    .npArtist{
+      font-weight: 1000;
+      font-size: 18px;
+      line-height: 1.1;
+      margin-top: 8px;
       word-break: break-word;
     }
-
-    .np-track {
-      font-size: 16px;
+    .npTrack{
+      margin-top: 4px;
+      font-size: 13px;
       color: var(--muted);
       word-break: break-word;
     }
 
-    .np-meta {
-      margin-top: 6px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.86);
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .chip {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-weight: 800;
-      color: rgba(255,255,255,0.88);
-    }
-
-    .scores {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 4px;
-    }
-
-    .score-pill {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 8px 10px;
-      font-weight: 800;
-      font-size: 13px;
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .score-pill span:first-child { color: var(--muted); font-weight: 800; }
-
-    .totalBox {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: center;
+    .meta{
       margin-top: 8px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
     }
-
-    .totalNum {
-      font-size: 44px;
-      font-weight: 1000;
-      letter-spacing: 0.02em;
-    }
-
-    .verdict {
-      font-weight: 1000;
-      font-size: 14px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      text-align: right;
-    }
-    .verdict.approved { color: var(--green); }
-    .verdict.rejected { color: var(--red); }
-
-    /* Verdict stamp animation */
-    .stamp {
-      position: absolute;
-      right: 14px;
-      top: 54px;
-      padding: 10px 14px;
-      border-radius: 14px;
-      font-weight: 1000;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      transform: rotate(-8deg) scale(0.7);
-      opacity: 0;
-      border: 2px solid rgba(255,255,255,0.18);
-      background: rgba(0,0,0,0.25);
-      pointer-events: none;
-      filter: blur(0px);
-    }
-    .stamp.approved { border-color: rgba(46,204,113,0.65); color: rgba(46,204,113,0.95); }
-    .stamp.rejected { border-color: rgba(231,76,60,0.60); color: rgba(231,76,60,0.95); }
-
-    .stamp.show {
-      animation: stampPop 480ms cubic-bezier(.18,.9,.2,1) forwards;
-    }
-
-    @keyframes stampPop {
-      0% { opacity: 0; transform: rotate(-10deg) scale(0.6); }
-      45% { opacity: 1; transform: rotate(-8deg) scale(1.08); }
-      70% { opacity: 1; transform: rotate(-8deg) scale(0.98); }
-      100% { opacity: 1; transform: rotate(-8deg) scale(1.0); }
-    }
-
-    /* Now playing swap animation */
-    .fadeOut {
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.18s ease, transform 0.18s ease;
-    }
-    .fadeIn {
-      opacity: 1;
-      transform: translateY(0);
-      transition: opacity 0.24s ease, transform 0.24s ease;
-    }
-
-    /* Pulse on score changes */
-    .pulse {
-      animation: pulse 0.28s ease-out;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      40% { transform: scale(1.08); }
-      100% { transform: scale(1); }
-    }
-
-    /* Viral caption strip */
-    .captionStrip {
-      margin-top: 10px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(0,0,0,0.22);
-      border: 1px solid rgba(255,255,255,0.14);
-      color: rgba(255,255,255,0.92);
-      font-weight: 800;
-      font-size: 13px;
-      line-height: 1.25;
-      min-height: 44px;
-      display: grid;
-      gap: 4px;
-    }
-    .captionStrip .label {
-      font-size: 11px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.68);
-      font-weight: 900;
-    }
-
-    /* Spotlight */
-    .spotlight {
-      position: absolute;
-      left: 16px;
-      top: 68px;
-      right: 16px;
-      background: rgba(0,0,0,0.30);
-      border: 1px solid rgba(212,175,55,0.34);
-      border-radius: 16px;
-      padding: 12px 12px;
-      display: none;
-      box-shadow: 0 0 34px rgba(212,175,55,0.16);
-    }
-    .spotlight.show { display: block; animation: spotIn 260ms ease-out; }
-    @keyframes spotIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .spotTitle {
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      font-weight: 1000;
-      color: rgba(212,175,55,0.95);
-    }
-    .spotMain {
-      margin-top: 6px;
-      display: grid;
-      gap: 4px;
-    }
-    .spotHandle {
-      font-weight: 1000;
-      font-size: 16px;
-    }
-    .spotSub {
-      color: rgba(255,255,255,0.78);
-      font-weight: 800;
-      font-size: 12px;
-    }
-
-    /* Leaderboard */
-    .lb-title {
-      font-weight: 900;
-      letter-spacing: 0.04em;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-    }
-
-    .lb-row {
-      display: grid;
-      grid-template-columns: 26px 1fr auto;
-      gap: 10px;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .rank { color: var(--accent); font-weight: 1000; }
-    .artist { font-weight: 900; }
-    .track { color: var(--muted); font-size: 12px; margin-top: 2px; }
-    .score { font-weight: 1000; font-size: 18px; }
-
-    .footer {
-      opacity: 0.85;
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .safeHint {
-      color: rgba(255,255,255,0.5);
-      font-weight: 700;
-      font-size: 11px;
-    }
-
-    /* Session recap modal */
-    .recap {
-      position: absolute;
-      left: 18px;
-      right: 18px;
-      bottom: 330px;
-      background: rgba(0,0,0,0.74);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 18px;
-      padding: 14px 14px;
-      display: none;
-      box-shadow: 0 22px 60px rgba(0,0,0,0.55);
-    }
-    .recap.show { display: block; animation: recapIn 260ms ease-out; }
-    @keyframes recapIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .recapHead {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .recapTitle {
-      font-weight: 1000;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      font-size: 12px;
-      color: rgba(255,255,255,0.92);
-    }
-    .recapTag {
-      font-weight: 1000;
-      font-size: 12px;
-      color: rgba(212,175,55,0.95);
-      border: 1px solid rgba(212,175,55,0.30);
-      background: rgba(212,175,55,0.10);
-      padding: 6px 10px;
+    .tag{
+      padding: 5px 9px;
       border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      font-size: 12px;
+      font-weight: 900;
+      color: rgba(255,255,255,0.88);
       white-space: nowrap;
     }
-    .recapBody {
-      display: grid;
-      gap: 10px;
+    .tag strong{ color: var(--gold); }
+
+    /* Tiny score strip (doesn't cover screen) */
+    .scoreStrip{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
     }
-    .recapLine {
-      color: rgba(255,255,255,0.84);
+    .s{
+      border: 1px solid rgba(255,255,255,0.14);
+      background: var(--glass2);
+      border-radius: 12px;
+      padding: 7px 8px;
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width:0;
+    }
+    .s label{
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.65);
       font-weight: 900;
-      font-size: 13px;
-      line-height: 1.25;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    .recapSmall {
-      color: rgba(255,255,255,0.74);
-      font-weight: 800;
+    .s b{
+      font-size: 14px;
+      font-weight: 1000;
+      line-height: 1;
+    }
+
+    /* Verdict is small + color-coded */
+    .verdict{
+      margin-top: 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .totalBig{
+      font-weight: 1100;
+      font-size: 30px;
+      letter-spacing:.02em;
+      white-space:nowrap;
+    }
+    .status{
+      font-weight: 1100;
+      letter-spacing: .14em;
+      text-transform: uppercase;
       font-size: 12px;
-      line-height: 1.25;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.18);
+      white-space:nowrap;
+    }
+    .status.approved{ color: var(--green); border-color: rgba(46,204,113,0.32); }
+    .status.rejected{ color: var(--red); border-color: rgba(231,76,60,0.32); }
+
+    /* Micro leaderboard (Top 3) */
+    .lbTitle{
+      font-weight: 1000;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-size: 11px;
+      opacity: .9;
+    }
+    .lb{
+      margin-top: 8px;
+      display:grid;
+      gap: 8px;
+    }
+    .lbRow{
+      display:grid;
+      grid-template-columns: 22px 1fr auto;
+      gap: 8px;
+      align-items:center;
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.22);
+      border-radius: 14px;
+    }
+    .rk{
+      color: var(--gold);
+      font-weight: 1100;
+    }
+    .nm{
+      font-weight: 1000;
+      font-size: 12px;
+      line-height: 1.1;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+    .tt{
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+      margin-top: 2px;
+    }
+    .sc{
+      font-weight: 1100;
+      font-size: 14px;
+      white-space:nowrap;
+    }
+
+    /* Keep entire right side clear for TikTok buttons */
+    .rightSafe{
+      position:absolute;
+      top:0; right:0;
+      width: 160px;
+      height:100%;
+      pointer-events:none;
     }
   </style>
 </head>
 <body>
-  <div class="overlay">
+  <div class="hud">
+    <div class="dock">
 
-    <!-- NOW PLAYING / SCORING -->
-    <div class="card tier-normal" id="npCard">
+      <!-- NOW PLAYING (small) -->
+      <div class="chip" id="npCard">
+        <div class="row">
+          <div class="brand">AI MUSIC BOARD</div>
+          <div class="pill"><span class="dot"></span><span>LIVE</span></div>
+        </div>
 
-      <div class="header">
-        <div class="title">AI Music Board</div>
-        <div class="headerRight">
-          <div class="counter" id="queueCounter">Queue: <strong>—</strong></div>
-          <div class="badge live">LIVE</div>
+        <div class="row" style="margin-top:8px;">
+          <div class="tag" id="queueCounter">Queue: <strong>—</strong></div>
+          <div class="tag" id="chipGenre" style="display:none;">Genre</div>
+          <div class="tag" id="chipHandle" style="display:none;">@handle</div>
+        </div>
+
+        <div class="npArtist" id="np-artist">Waiting for track…</div>
+        <div class="npTrack" id="np-track">—</div>
+
+        <div class="scoreStrip" id="scores">
+          <div class="s"><label>Lyrics</label><b id="v-lyrics">0</b></div>
+          <div class="s"><label>Delivery</label><b id="v-delivery">0</b></div>
+          <div class="s"><label>Prod</label><b id="v-production">0</b></div>
+          <div class="s"><label>Orig</label><b id="v-originality">0</b></div>
+          <div class="s"><label>Replay</label><b id="v-replay">0</b></div>
+          <div class="s"><label>Total</label><b id="v-total">0</b></div>
+        </div>
+
+        <div class="verdict">
+          <div class="totalBig" id="totalBig">0</div>
+          <div class="status rejected" id="verdict">Rejected</div>
         </div>
       </div>
 
-      <!-- Spotlight (shows automatically on 35+) -->
-      <div class="spotlight" id="spotlight">
-        <div class="spotTitle">Artist Spotlight</div>
-        <div class="spotMain">
-          <div class="spotHandle" id="spotHandle">@artist</div>
-          <div class="spotSub" id="spotSub">Genre • High Score</div>
-        </div>
+      <!-- LEADERBOARD (Top 3 only) -->
+      <div class="chip">
+        <div class="lbTitle">Top Board</div>
+        <div class="lb" id="leaderboard"></div>
       </div>
 
-      <!-- Verdict stamp -->
-      <div class="stamp rejected" id="stamp">Rejected</div>
-
-      <div class="np" id="npWrap">
-        <div>
-          <div class="np-artist" id="np-artist">Waiting for track…</div>
-          <div class="np-track" id="np-track">—</div>
-          <div class="np-meta" id="npMeta">
-            <span class="chip" id="chipGenre" style="display:none;">Genre</span>
-            <span class="chip" id="chipHandle" style="display:none;">@handle</span>
-          </div>
-        </div>
-
-        <div class="scores">
-          <div class="score-pill"><span>Lyrics</span><span id="v-lyrics">0</span></div>
-          <div class="score-pill"><span>Delivery</span><span id="v-delivery">0</span></div>
-          <div class="score-pill"><span>Production</span><span id="v-production">0</span></div>
-          <div class="score-pill"><span>Originality</span><span id="v-originality">0</span></div>
-          <div class="score-pill"><span>Replay</span><span id="v-replay">0</span></div>
-          <div class="score-pill"><span>Total</span><span id="v-total">0</span></div>
-        </div>
-
-        <div class="totalBox">
-          <div class="totalNum" id="totalBig">0</div>
-          <div id="verdict" class="verdict rejected">Rejected</div>
-        </div>
-
-        <div class="captionStrip" id="captionStrip">
-          <div class="label">Viral caption</div>
-          <div id="captionText">Waiting for verdict…</div>
-        </div>
-      </div>
     </div>
 
-    <div></div>
-
-    <!-- LEADERBOARD -->
-    <div class="card">
-      <div class="lb-title">Top Board</div>
-      <div id="leaderboard"></div>
-      <div class="footer">
-        <div>aimusicboards.com</div>
-        <div class="safeHint">TikTok 9:16</div>
-      </div>
-    </div>
-
-    <!-- Session Recap (pops on FINAL submissions) -->
-    <div class="recap" id="recap">
-      <div class="recapHead">
-        <div class="recapTitle">Session Recap</div>
-        <div class="recapTag" id="recapTag">Boarded</div>
-      </div>
-      <div class="recapBody">
-        <div class="recapLine" id="recapLine">—</div>
-        <div class="recapSmall" id="recapSmall">—</div>
-      </div>
-    </div>
-
+    <div class="rightSafe"></div>
   </div>
 
   <script>
     const API = "https://aimusicboards.com";
 
     let lastNowPlayingId = null;
-    let lastVerdict = null;
-    let lastTotal = null;
-
-    let lastFinalKey = null;
-    let lastCaptions = [];
-    let captionIndex = 0;
 
     function setText(id, text) {
       const el = document.getElementById(id);
       if (el) el.textContent = text;
     }
 
-    function show(el, on) {
-      if (!el) return;
-      el.style.display = on ? "" : "none";
-    }
-
-    function animateSwap(el, doSwap) {
-      if (!el) return doSwap();
-      el.classList.remove("fadeIn");
-      el.classList.add("fadeOut");
-      setTimeout(() => {
-        doSwap();
-        el.classList.remove("fadeOut");
-        el.classList.add("fadeIn");
-        setTimeout(() => el.classList.remove("fadeIn"), 260);
-      }, 190);
-    }
-
-    function pulse(el) {
-      if (!el) return;
-      el.classList.remove("pulse");
-      void el.offsetWidth;
-      el.classList.add("pulse");
-      setTimeout(() => el.classList.remove("pulse"), 260);
-    }
-
-    function tierForTotal(total) {
-      if (total >= 35) return "gold";
-      if (total >= 30) return "green";
-      return "red";
-    }
-
-    function applyTier(total) {
-      const card = document.getElementById("npCard");
-      if (!card) return;
-
-      card.classList.remove("tier-normal", "tier-gold", "tier-green", "tier-red");
-
-      const tier = tierForTotal(total);
-      if (tier === "gold") card.classList.add("tier-gold");
-      else if (tier === "green") card.classList.add("tier-green");
-      else card.classList.add("tier-red");
-    }
-
     function extractHandle(np) {
-      // Priority: explicit artist_handle -> first @token found in artist_name/notes -> none
       if (np && np.artist_handle) return np.artist_handle;
-
-      const candidates = [
-        np?.artist_name || "",
-        np?.notes || "",
-        np?.track_title || ""
-      ].join(" ");
-
+      const candidates = [np?.artist_name || "", np?.notes || "", np?.track_title || ""].join(" ");
       const m = candidates.match(/@\w{2,30}/);
       return m ? m[0] : "";
-    }
-
-    function buildCaptions(np, total, approved) {
-      const artist = (np?.artist_name || "this artist").trim();
-      const track = (np?.track_title || "this track").trim();
-      const genre = (np?.genre || "").trim();
-
-      const tier = total >= 35 ? "ELITE" : total >= 30 ? "BOARD" : "REJECTED";
-      const verdictWord = approved ? "MADE THE BOARD" : "DIDN’T MAKE THE BOARD";
-
-      const caps = [
-        `“${track}” by ${artist} just ${verdictWord}. Score: ${total}.`,
-        total >= 35
-          ? `ELITE AI record. ${artist} just dropped a ${total}/50. 🔥`
-          : total >= 30
-            ? `${artist} earned a Board spot with a ${total}. Respect.`
-            : `Standards matter. ${artist} scored ${total}. Keep refining.`,
-
-        genre
-          ? `${genre} AI — live judged. No hype. Just standards. (${total})`
-          : `Live judged. No hype. Just standards. (${total})`,
-
-        total >= 35
-          ? `CLIP THIS: ${artist} went ELITE (${total}) 🎬`
-          : total >= 30
-            ? `CLIP THIS: Boarded live (${total}) ✅`
-            : `Not boarded — but feedback was real. (${total})`,
-      ];
-
-      return caps.filter(Boolean);
-    }
-
-    function rotateCaption() {
-      if (!lastCaptions.length) return;
-      captionIndex = (captionIndex + 1) % lastCaptions.length;
-      setText("captionText", lastCaptions[captionIndex]);
-    }
-
-    function showStamp(approved) {
-      const stamp = document.getElementById("stamp");
-      if (!stamp) return;
-
-      stamp.classList.remove("approved", "rejected", "show");
-      stamp.textContent = approved ? "Approved" : "Rejected";
-      stamp.classList.add(approved ? "approved" : "rejected");
-
-      // retrigger animation
-      void stamp.offsetWidth;
-      stamp.classList.add("show");
-
-      setTimeout(() => stamp.classList.remove("show"), 900);
-    }
-
-    function setSpotlight(np, total) {
-      const spot = document.getElementById("spotlight");
-      if (!spot) return;
-
-      if (total >= 35) {
-        const handle = extractHandle(np);
-        setText("spotHandle", handle || (np?.artist_name ? np.artist_name : "@artist"));
-        setText("spotSub", `${np?.genre || "—"} • High Score ${total}`);
-        spot.classList.add("show");
-      } else {
-        spot.classList.remove("show");
-      }
-    }
-
-    function animateCount(id, from, to, durationMs = 260) {
-      const el = document.getElementById(id);
-      if (!el) return;
-
-      const start = performance.now();
-      const a = Number(from || 0);
-      const b = Number(to || 0);
-
-      function step(t) {
-        const p = Math.min(1, (t - start) / durationMs);
-        const v = Math.round(a + (b - a) * (p));
-        el.textContent = String(v);
-        if (p < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
     }
 
     async function fetchStatus() {
@@ -656,38 +310,12 @@
         const data = await res.json();
         const qc = document.getElementById("queueCounter");
         if (qc) qc.innerHTML = `Queue: <strong>${data.queue_count ?? "—"}</strong>`;
-      } catch (e) {
-        // silent
-      }
-    }
-
-    function showRecap(np, total, approved, boardItems) {
-      const recap = document.getElementById("recap");
-      if (!recap) return;
-
-      const tag = document.getElementById("recapTag");
-      const line = document.getElementById("recapLine");
-      const small = document.getElementById("recapSmall");
-
-      if (tag) tag.textContent = approved ? "Boarded ✅" : "Rejected ❌";
-      if (line) line.textContent = `${np?.artist_name || "Artist"} — “${np?.track_title || "Track"}” • ${total}`;
-
-      const top3 = (boardItems || []).slice(0, 3).map((x, i) => `#${i+1} ${x.artist_name} (${x.total})`);
-      const caps = lastCaptions.slice(0, 2).join("  •  ");
-
-      if (small) {
-        small.textContent = top3.length
-          ? `Top Board: ${top3.join("  •  ")}  •  Caption: ${caps || "—"}`
-          : `Caption: ${caps || "—"}`;
-      }
-
-      recap.classList.add("show");
-      setTimeout(() => recap.classList.remove("show"), 6500);
+      } catch {}
     }
 
     async function fetchNowPlaying() {
       try {
-        const res = await fetch(`${API}/api/now_playing`, { cache: 'no-store' });
+        const res = await fetch(`${API}/api/now_playing`, { cache: "no-store" });
         const data = await res.json();
         const np = data.now_playing || null;
         if (!np) return;
@@ -699,103 +327,44 @@
         const production = Number(np.production || 0);
         const originality = Number(np.originality || 0);
         const replay = Number(np.replay || 0);
-
         const computedTotal = lyrics + delivery + production + originality + replay;
         const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
 
         const approved = total >= 30;
 
-        const verdictEl = document.getElementById("verdict");
-        const wrap = document.getElementById("npWrap");
-        const totalBig = document.getElementById("totalBig");
-
-        const handle = extractHandle(np);
+        // chips
         const chipGenre = document.getElementById("chipGenre");
         const chipHandle = document.getElementById("chipHandle");
+        const handle = extractHandle(np);
 
-        const applyAll = () => {
-          setText("np-artist", np.artist_name || "—");
-          setText("np-track", np.track_title || "—");
-
-          // chips
-          if (chipGenre) {
-            if (np.genre) { chipGenre.textContent = np.genre; chipGenre.style.display = ""; }
-            else { chipGenre.style.display = "none"; }
-          }
-          if (chipHandle) {
-            if (handle) { chipHandle.textContent = handle; chipHandle.style.display = ""; }
-            else { chipHandle.style.display = "none"; }
-          }
-
-          // score count-up
-          animateCount("v-lyrics", Number(document.getElementById("v-lyrics")?.textContent || 0), lyrics);
-          animateCount("v-delivery", Number(document.getElementById("v-delivery")?.textContent || 0), delivery);
-          animateCount("v-production", Number(document.getElementById("v-production")?.textContent || 0), production);
-          animateCount("v-originality", Number(document.getElementById("v-originality")?.textContent || 0), originality);
-          animateCount("v-replay", Number(document.getElementById("v-replay")?.textContent || 0), replay);
-
-          animateCount("v-total", Number(document.getElementById("v-total")?.textContent || 0), total);
-          animateCount("totalBig", Number(totalBig?.textContent || 0), total);
-
-          if (verdictEl) {
-            if (approved) {
-              verdictEl.textContent = "Approved";
-              verdictEl.className = "verdict approved";
-            } else {
-              verdictEl.textContent = "Rejected";
-              verdictEl.className = "verdict rejected";
-            }
-          }
-
-          applyTier(total);
-          setSpotlight(np, total);
-
-          // captions
-          lastCaptions = buildCaptions(np, total, approved);
-          captionIndex = 0;
-          setText("captionText", lastCaptions[0] || "—");
-        };
-
-        // Track changed → animate swap + verdict reveal
-        if (currentId && currentId !== lastNowPlayingId) {
-          lastNowPlayingId = currentId;
-          lastTotal = total;
-          lastVerdict = approved ? "approved" : "rejected";
-          animateSwap(wrap, () => {
-            applyAll();
-            showStamp(approved);
-          });
-          return;
+        if (chipGenre) {
+          if (np.genre) { chipGenre.textContent = np.genre; chipGenre.style.display = ""; }
+          else { chipGenre.style.display = "none"; }
+        }
+        if (chipHandle) {
+          if (handle) { chipHandle.textContent = handle; chipHandle.style.display = ""; }
+          else { chipHandle.style.display = "none"; }
         }
 
-        // Same track: update + pulse when total changes
-        applyAll();
+        // minimal update
+        setText("np-artist", np.artist_name || "—");
+        setText("np-track", np.track_title || "—");
 
-        if (lastTotal !== null && total !== lastTotal) {
-          if (totalBig) pulse(totalBig);
+        setText("v-lyrics", String(lyrics));
+        setText("v-delivery", String(delivery));
+        setText("v-production", String(production));
+        setText("v-originality", String(originality));
+        setText("v-replay", String(replay));
+        setText("v-total", String(total));
+        setText("totalBig", String(total));
+
+        const verdictEl = document.getElementById("verdict");
+        if (verdictEl) {
+          verdictEl.textContent = approved ? "Approved" : "Rejected";
+          verdictEl.className = "status " + (approved ? "approved" : "rejected");
         }
 
-        const verdictKey = approved ? "approved" : "rejected";
-        if (lastVerdict !== null && verdictKey !== lastVerdict) {
-          showStamp(approved);
-        }
-
-        lastTotal = total;
-        lastVerdict = verdictKey;
-
-        // Session recap trigger (only when np.final changes)
-        // Desktop app sets: final: true on Submit Final Score
-        if (np.final) {
-          const key = `${currentId || ""}:${total}:${approved ? 1 : 0}`;
-          if (key !== lastFinalKey) {
-            lastFinalKey = key;
-
-            // Pull board list once so recap can show top 3
-            const b = await fetch(`${API}/api/board`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({items:[]}));
-            showRecap(np, total, approved, b.items || []);
-          }
-        }
-
+        lastNowPlayingId = currentId;
       } catch (e) {
         console.error("now_playing err:", e);
       }
@@ -803,22 +372,21 @@
 
     async function fetchLeaderboard() {
       try {
-        const res = await fetch(`${API}/api/board`, { cache: 'no-store' });
+        const res = await fetch(`${API}/api/board`, { cache: "no-store" });
         const data = await res.json();
-
         const root = document.getElementById("leaderboard");
         root.innerHTML = "";
 
-        (data.items || []).slice(0, 5).forEach((row, idx) => {
+        (data.items || []).slice(0, 3).forEach((row, idx) => {
           const div = document.createElement("div");
-          div.className = "lb-row";
+          div.className = "lbRow";
           div.innerHTML = `
-            <div class="rank">${idx + 1}</div>
+            <div class="rk">${idx + 1}</div>
             <div>
-              <div class="artist">${row.artist_name || "—"}</div>
-              <div class="track">${row.track_title || "—"}</div>
+              <div class="nm">${row.artist_name || "—"}</div>
+              <div class="tt">${row.track_title || "—"}</div>
             </div>
-            <div class="score">${row.total ?? ""}</div>
+            <div class="sc">${row.total ?? ""}</div>
           `;
           root.appendChild(div);
         });
@@ -835,9 +403,6 @@
 
     tick();
     setInterval(tick, 2000);
-
-    // Rotate captions every 6 seconds
-    setInterval(rotateCaption, 6000);
   </script>
 </body>
 </html>
