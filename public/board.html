@@ -4,70 +4,255 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Board • AI Music Boards</title>
-<link rel="icon" href="/favicon.ico?v=2" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/site.webmanifest?v=2">
+  <link rel="icon" href="/favicon.ico?v=2" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+  <link rel="manifest" href="/site.webmanifest?v=2">
 
   <style>
-    body{background:#0b0b0f;color:#fff;font-family:Inter,system-ui,Arial;margin:0}
-    .wrap{max-width:980px;margin:40px auto;padding:16px}
-    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:18px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.12);text-align:left}
-    a{color:#d4af37;text-decoration:none}
-    .muted{color:rgba(255,255,255,.7)}
+    :root{
+      --bg:#0b0b0f;
+      --panel:rgba(255,255,255,.06);
+      --panel2:rgba(255,255,255,.04);
+      --border:rgba(255,255,255,.14);
+      --muted:rgba(255,255,255,.7);
+      --gold:#d4af37;
+    }
+    body{background:var(--bg);color:#fff;font-family:Inter,system-ui,Arial;margin:0}
+    a{color:var(--gold);text-decoration:none}
+    .muted{color:var(--muted)}
+
+    .wrap{max-width:980px;margin:28px auto;padding:16px}
+
+    /* Sticky header */
+    .sticky{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background: rgba(11,11,15,.78);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .sticky-inner{
+      max-width:980px;
+      margin:0 auto;
+      padding:12px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex; flex-direction:column; gap:2px; min-width:0;
+    }
+    .brand h1{
+      margin:0;
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .brand .sub{
+      font-size:12px;
+      color:rgba(255,255,255,.72);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .meta{
+      display:flex; align-items:center; gap:10px; flex:0 0 auto;
+    }
+    .pill{
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:rgba(255,255,255,.85);
+      white-space:nowrap;
+    }
+    .pill b{color:#fff}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:8px 10px; border-radius:12px;
+      border:1px solid rgba(212,175,55,.35);
+      background:rgba(212,175,55,.14);
+      color:#fff; font-weight:800;
+      font-size:12px;
+      white-space:nowrap;
+    }
+
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;margin-top:16px}
+
+    /* Desktop table */
+    .desktop table{width:100%;border-collapse:collapse}
+    .desktop th,.desktop td{padding:10px;border-bottom:1px solid rgba(255,255,255,.12);text-align:left;vertical-align:top}
+    .desktop th{
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.75)
+    }
+    .col-rank{width:48px}
+    .col-score{width:70px}
+    .col-listen{width:72px}
+
+    /* Mobile cards */
+    .mobile{display:none}
+    .item{
+      display:flex; gap:12px; align-items:flex-start;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      background:var(--panel2);
+      margin-top:10px;
+    }
+    .rank{
+      flex:0 0 auto;
+      width:44px; height:44px;
+      border-radius:12px;
+      background:rgba(212,175,55,.16);
+      border:1px solid rgba(212,175,55,.35);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:900;
+    }
+    .meta2{flex:1 1 auto; min-width:0}
+    .artist{font-weight:800; font-size:14px; line-height:1.2}
+    .track{font-size:13px; color:rgba(255,255,255,.85); margin-top:2px; line-height:1.25; word-break:break-word}
+    .row2{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px}
+    .score{
+      font-weight:900; font-size:14px;
+      padding:6px 10px; border-radius:999px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.14);
+      white-space:nowrap;
+    }
+
+    @media (max-width: 720px){
+      .wrap{margin:16px auto}
+      .desktop{display:none}
+      .mobile{display:block}
+      .card{padding:14px}
+    }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="card">
-    <h1>AI Music Authority Board</h1>
-    <p class="muted">Only tracks scoring 30+ make the board. Ranked by score.</p>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th><th>Artist</th><th>Track</th><th>Score</th><th>Listen</th>
-        </tr>
-      </thead>
-      <tbody id="rows">
-        <tr><td colspan="5" class="muted">Loading…</td></tr>
-      </tbody>
-    </table>
+
+  <!-- Sticky header (always visible) -->
+  <div class="sticky">
+    <div class="sticky-inner">
+      <div class="brand">
+        <h1>AI Music Authority Board</h1>
+        <div class="sub">Only tracks scoring 30+ make the board.</div>
+      </div>
+      <div class="meta">
+        <div class="pill" id="lastUpdated">Updated: —</div>
+        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+      </div>
+    </div>
   </div>
-</div>
 
-<script>
-async function load() {
-  const r = await fetch("/api/board", { cache: "no-store" });
-  const j = await r.json();
-  const rows = document.getElementById("rows");
-  rows.innerHTML = "";
+  <div class="wrap">
+    <div class="card">
+      <div class="desktop">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-rank">#</th>
+              <th>Artist</th>
+              <th>Track</th>
+              <th class="col-score">Score</th>
+              <th class="col-listen">Listen</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="5" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
 
-  (j.items || []).forEach((it, idx) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${idx+1}</td>
-      <td>${escapeHtml(it.artist_name)}</td>
-      <td>${escapeHtml(it.track_title)}</td>
-      <td><b>${it.total}</b></td>
-      <td><a href="${it.track_url}" target="_blank" rel="noopener">Play</a></td>
-    `;
-    rows.appendChild(tr);
-  });
+      <div class="mobile" id="cards">
+        <div class="muted">Loading…</div>
+      </div>
+    </div>
+  </div>
 
-  if (!j.items || j.items.length === 0) {
-    rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
-  }
-}
+  <script>
+    const lastUpdatedEl = document.getElementById("lastUpdated");
+    const refreshBtn = document.getElementById("refreshBtn");
 
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-}
+    function fmtTime(d){
+      // Example: "Jan 17, 12:34 PM"
+      return d.toLocaleString(undefined, {
+        month: "short",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
 
-load();
-setInterval(load, 5000);
-</script>
+    async function load() {
+      // Show "updating…" immediately
+      lastUpdatedEl.textContent = "Updated: …";
+
+      const r = await fetch("/api/board", { cache: "no-store" });
+      const j = await r.json();
+
+      // Update timestamp on successful fetch
+      lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
+
+      const rows = document.getElementById("rows");
+      const cards = document.getElementById("cards");
+      rows.innerHTML = "";
+      cards.innerHTML = "";
+
+      const items = (j.items || []);
+
+      items.forEach((it, idx) => {
+        // Desktop row
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${idx+1}</td>
+          <td>${escapeHtml(it.artist_name)}</td>
+          <td>${escapeHtml(it.track_title)}</td>
+          <td><b>${Number(it.total)}</b></td>
+          <td><a href="${it.track_url}" target="_blank" rel="noopener">Play</a></td>
+        `;
+        rows.appendChild(tr);
+
+        // Mobile card
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="rank">${idx+1}</div>
+          <div class="meta2">
+            <div class="artist">${escapeHtml(it.artist_name)}</div>
+            <div class="track">${escapeHtml(it.track_title)}</div>
+            <div class="row2">
+              <div class="score">Score: ${Number(it.total)}</div>
+              <a class="btn" href="${it.track_url}" target="_blank" rel="noopener">Play</a>
+            </div>
+          </div>
+        `;
+        cards.appendChild(div);
+      });
+
+      if (items.length === 0) {
+        rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
+        cards.innerHTML = `<div class="muted">No approved tracks yet.</div>`;
+      }
+    }
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    refreshBtn.addEventListener("click", () => load());
+
+    load();
+    setInterval(load, 5000);
+  </script>
 </body>
 </html>
