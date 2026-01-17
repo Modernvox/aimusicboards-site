@@ -1,7 +1,9 @@
 export type Env = {
   DB: D1Database;
   ADMIN_TOKEN?: string;
+  AIMB_BUCKET: R2Bucket;
 };
+
 
 export function json(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
