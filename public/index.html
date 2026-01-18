@@ -627,7 +627,7 @@
       justify-content:center;
     }
 
-    /* ---------- Responsive ---------- */
+     /* ---------- Responsive (FIXED: no duplicate 520px block) ---------- */
     @media (max-width: 980px){
       .navlinks{ display:none; }
 
@@ -635,7 +635,7 @@
         grid-template-columns: 1fr;
         gap: 16px;
         justify-items: center;
-        max-width: 760px; /* keep centered */
+        max-width: 760px;
       }
       .host{
         height: 220px;
@@ -653,28 +653,56 @@
       .pod{ grid-template-columns: 52px 1fr 92px; }
       .pod .track{ font-size: 14px; }
       .pod .score{ font-size: 18px; }
+
+      /* Hero spacing + pills wrap nicer */
+      .hero{ padding: 42px 0 28px; }
+      .hero-toprow{ gap: 8px; margin-bottom: 14px; }
+      .pill{ padding: 9px 10px; font-size: 11px; }
     }
 
     @media (max-width: 520px){
       .wrap{ width: calc(100% - 28px); }
-      .nav{ height: 68px; }
+      .nav{ height: 64px; }
       .brand{ font-size: 18px; }
 
       .btn{ padding: 11px 14px; border-radius: 12px; }
       .btn.cta{ width: 100%; max-width: 320px; }
 
+      /* ✅ HERO MOBILE FIX */
+      .hero{
+        min-height: 440px;
+        padding: 36px 0 22px;
+        overflow: hidden;
+      }
+      .hero::before{
+        background-position: 58% 20%;
+      }
+
+      /* Prevent headline from feeling huge / awkward wraps */
+      .headline{
+        font-size: clamp(28px, 9vw, 40px);
+        line-height: 1.06;
+        margin: 0 0 12px 0;
+      }
+      .subhead{
+        font-size: 14px;
+        margin: 0 auto 16px auto;
+      }
+
+      /* Keep pills from overflowing */
+      .hero-toprow{
+        justify-content: center;
+      }
+      .pill{
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .screen-inner{ padding: 16px; }
       .tiles{ grid-template-columns: 1fr; }
     }
 
-    @media (max-width: 520px){
-      .hero{
-        min-height: 440px;
-      }
-      .hero::before{
-       background-position: 58% 20%; /* slight shift to keep subject visible */
-      }
-    }
 
   </style>
 </head>
