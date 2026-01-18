@@ -21,22 +21,32 @@ export async function onRequest(context: { request: Request; env: Env; params: a
     return new Response("Missing key", { status: 400, headers: cors });
   }
 
-  // ✅ Only previews are public. Everything else (uploads/) requires admin auth.
-  const isPreview = key.startsWith("previews/");
-
-  if (!isPreview) {
-    const err = requireAdmin(request, env);
-    if (err) return new Response("Unauthorized", { status: 401, headers: cors });
-  }
-
   // ✅ Public media paths (site visitors must be able to play these)
   const isPreview = key.startsWith("previews/");
   const isUpload = key.startsWith("uploads/");
 
-  // Only non-public paths require admin
+  // ✅ Only non-public paths require admin
   if (!isPreview && !isUpload) {
     const err = requireAdmin(request, env);
     if (err) return new Response("Unauthorized", { status: 401, headers: cors });
+  }
+
+  const rangeHeader = request.headers.get("Range") || undefined;
+
+  // IMPORTANT: Replace BUCKET name with your actual binding name:
+  // e.g. env.R2_BUCKET, env.AIMB_BUCKET, etc.
+  const bucket = (env as any).R2_BUCKET;
+  if (!bucket) {
+    return new Response("Server misconfigured: missing R2 bucket binding", {
+      status: 500,
+      headers: cors,
+    });
+  }
+
+  const obj = await bucket.get(key, rangeHeader ? { range: rangeHeader } : undefined);
+
+  if (!obj) {
+    return new Response("Not found", { status: 404, headers: cors });
   }
 
   const headers = new Headers(cors);
@@ -44,17 +54,18 @@ export async function onRequest(context: { request: Request; env: Env; params: a
 
   // Helpful for players + caching behavior
   headers.set("Accept-Ranges", "bytes");
-  headers.set("ETag", obj.httpEtag);
+  if (obj.httpEtag) headers.set("ETag", obj.httpEtag);
 
-  headers.set("Cache-Control", (isPreview || isUpload) ? "public, max-age=3600" : "no-store");
+  headers.set(
+    "Cache-Control",
+    (isPreview || isUpload) ? "public, max-age=3600" : "no-store"
+  );
 
-  // If this was a range request, R2 returns partial content — respond 206
-  if (range) {
-    // Some clients rely on Content-Range/Length; R2 includes these via writeHttpMetadata when ranged.
-    return new Response(obj.body, { status: 206, headers });
-  }
+  // If this was a range request, return 206
+  const isRange = !!rangeHeader;
+  const status = isRange ? 206 : 200;
 
-  if (request.method === "HEAD") return new Response(null, { headers });
+  if (request.method === "HEAD") return new Response(null, { status, headers });
 
-  return new Response(obj.body, { headers });
+  return new Response(obj.body, { status, headers });
 }
