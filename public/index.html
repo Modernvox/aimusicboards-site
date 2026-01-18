@@ -627,7 +627,7 @@
       justify-content:center;
     }
 
-     /* ---------- Responsive (FIXED: no duplicate 520px block) ---------- */
+    /* ---------- Responsive (UPDATED: hero not huge on mobile) ---------- */
     @media (max-width: 980px){
       .navlinks{ display:none; }
 
@@ -668,32 +668,23 @@
       .btn{ padding: 11px 14px; border-radius: 12px; }
       .btn.cta{ width: 100%; max-width: 320px; }
 
-    @media (max-width: 520px){
-      .wrap{ width: calc(100% - 28px); }
-      .nav{ height: 64px; }
-      .brand{ font-size: 18px; }
-
-      .btn{ padding: 11px 14px; border-radius: 12px; }
-      .btn.cta{ width: 100%; max-width: 320px; }
-
-      /* ✅ HERO: CONTENT-DRIVEN HEIGHT */
+      /* ✅ HERO MOBILE FIX (CONTENT-DRIVEN, NOT FORCED TALL) */
       .hero{
-        min-height: unset;          /* 🔑 remove forced height */
-        max-height: 420px;          /* prevents giant hero */
-        padding: 28px 0 18px;       /* tighter vertical spacing */
+        min-height: unset;        /* 🔑 remove the forced height */
+        max-height: 420px;        /* prevents giant hero on phones */
+        padding: 28px 0 18px;     /* tighter vertical spacing */
         overflow: hidden;
       }
-
       .hero::before{
-        background-position: 60% 18%; /* keeps subject visible */
+        background-position: 60% 18%;
       }
 
+      /* Headline/subhead tightened */
       .headline{
         font-size: clamp(26px, 8vw, 38px);
         line-height: 1.08;
         margin: 0 0 10px 0;
       }
-
       .subhead{
         font-size: 14px;
         margin: 0 auto 14px auto;
@@ -703,21 +694,22 @@
         margin-bottom: 12px;
       }
 
+      /* Keep pills tidy */
       .hero-toprow{
+        justify-content: center;
         gap: 8px;
         margin-bottom: 12px;
-        justify-content: center;
       }
-
       .pill{
-        font-size: 11px;
-        padding: 8px 10px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .screen-inner{ padding: 16px; }
       .tiles{ grid-template-columns: 1fr; }
     }
-}
+
 
   </style>
 </head>
