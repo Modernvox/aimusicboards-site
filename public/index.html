@@ -611,65 +611,61 @@
 
     /* ---------------- MOBILE-FIRST TUNING (MATCH SAMPLE MOBILE) ---------------- */
     @media (max-width: 980px){
-      .navlinks{ display:none; }
-      .grid2{ grid-template-columns: 1fr; }
-      .tiles{ grid-template-columns: repeat(2, 1fr); }
+        .navlinks{ display:none; }
+        .grid2{ grid-template-columns: 1fr; }
+        .tiles{ grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 720px){
-        .wrap{ width: calc(100% - 28px); }
-        .nav{ height: 68px; }
-        .brand{ font-size: 18px; }
-
-        /* HERO should feel like the mockup: visible image, not a dark gradient */
+        /* --- HERO: mobile composition like the mockup --- */
         .hero{
-            padding: 26px 0 16px;
+            padding: 18px 0 14px;
+            min-height: 0;
         }
 
-        /* ✅ Show the LEFT subject (host) like the mockup */
         .hero::before{
-            background-position: 18% 18%;
-            background-size: cover;
-            filter:
-                saturate(1.10)
-                contrast(1.00)
-                brightness(1.28);
+            background-repeat: no-repeat;
+            background-position: 14% 12%;
+            background-size: 120% auto;
+            transform: none;
+            filter: saturate(1.08) brightness(1.12) contrast(1.00);
         }
 
-        /* ✅ Reduce overlay drastically (stop “purple blob” look) */
         .hero::after{
             background:
-                radial-gradient(720px 420px at 50% 18%, rgba(0,0,0,0.00), rgba(0,0,0,0.16) 60%),
-                linear-gradient(to bottom, rgba(0,0,0,0.00), rgba(7,7,12,0.28));
+                radial-gradient(640px 360px at 50% 18%, rgba(0,0,0,0.00), rgba(0,0,0,0.18) 62%),
+                linear-gradient(to bottom, rgba(0,0,0,0.06), rgba(7,7,12,0.34));
         }
 
-        /* Keep pills tight */
-        .pill{ font-size: 11px; padding: 9px 10px; }
-        .hero-toprow{ gap: 8px; margin-bottom: 12px; }
+        .hero .wrap{
+            padding-bottom: 10px;
+        }
 
-        /* Headline sizing similar to mockup mobile */
+        .hero-copy{
+            max-width: 720px;
+        }
+
+        .hero-toprow{ margin-bottom: 10px; }
         .headline{
-            font-size: clamp(28px, 9vw, 42px);
-            line-height: 1.06;
+            font-size: clamp(28px, 8.6vw, 40px);
+            line-height: 1.05;
             margin: 0 0 10px 0;
         }
         .subhead{
             font-size: 14px;
-            margin: 0 auto 14px auto;
+            margin: 0 auto 12px auto;
         }
 
-        .btn.cta{
-            width: 100%;
-            max-width: 360px;
-            min-width: 0;
-        }
+        .hero-actions{ margin-bottom: 12px; }
+        .btn.cta{ width: 100%; max-width: 360px; min-width: 0; }
 
         .nowplaying{
-            border-radius: 22px;
-            padding: 16px 16px;
+            margin-top: 8px;
+            padding: 14px 14px;
         }
-        .npMain{ font-size: 18px; }
+        .npMain{ font-size: 17px; }
 
+        /* ✅ THESE WERE OUTSIDE THE MEDIA QUERY — MOVED INSIDE */
         .screen-inner{ padding: 16px; }
         .pod{
             grid-template-columns: 54px 1fr 72px;
@@ -684,10 +680,11 @@
 
     /* ultra-small phones */
     @media (max-width: 390px){
-      .brand{ font-size: 16px; }
-      .btn{ padding: 11px 12px; font-size: 12px; }
-      .headline{ font-size: 30px; }
+        .brand{ font-size: 16px; }
+        .btn{ padding: 11px 12px; font-size: 12px; }
+        .headline{ font-size: 30px; }
     }
+
   </style>
 </head>
 
