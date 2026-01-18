@@ -617,22 +617,35 @@
     }
 
     @media (max-width: 720px){
-      .wrap{ width: calc(100% - 28px); }
-      .nav{ height: 68px; }
-      .brand{ font-size: 18px; }
+        .wrap{ width: calc(100% - 28px); }
+        .nav{ height: 68px; }
+        .brand{ font-size: 18px; }
 
-      /* ✅ MOBILE: lighten the hero overlay (this is what makes it dark) */
-      .hero::after{
-        background:
-          radial-gradient(700px 420px at 50% 20%, rgba(0,0,0,.02), rgba(0,0,0,.32) 65%),
-          linear-gradient(to bottom, rgba(0,0,0,.02), rgba(7,7,12,.58));
-      }
+        /* ✅ MOBILE: significantly reduce dark overlay */
+        .hero::after{
+            background:
+                radial-gradient(
+                    700px 420px at 50% 22%,
+                    rgba(0,0,0,0.00),
+                    rgba(0,0,0,0.18) 60%
+                ),
+                linear-gradient(
+                    to bottom,
+                    rgba(0,0,0,0.00),
+                    rgba(7,7,12,0.38)
+                );
+        }
 
-      /* optional: lift shadows a touch on mobile */
-      .hero::before{
-        filter: saturate(1.08) contrast(1.00) brightness(1.10);
-      }
+        /* ✅ MOBILE: actively brighten the image */
+        .hero::before{
+            filter:
+                saturate(1.12)
+                contrast(0.98)
+                brightness(1.24);
 
+            background-position: 52% 18%;
+        }
+    }
 
       /* hero fits one screen */
       .hero{ padding: 30px 0 16px; }
