@@ -981,7 +981,7 @@
       const npSub = document.getElementById("npSub");
       if (!npMain || !npSub) return;
 
-      if (np && np.active !== false && (np.artist_name || np.track_title)) {
+      if (np && np.active === true && (np.artist_name || np.track_title)) {
         npMain.textContent = `${np.artist_name || "—"} — ${np.track_title || "—"}`;
 
         const sub = [];
@@ -998,6 +998,7 @@
       // silent
     }
   }
+
 
   function renderPodium(id, entry, rank) {
     const el = document.getElementById(id);
