@@ -621,6 +621,19 @@
       .nav{ height: 68px; }
       .brand{ font-size: 18px; }
 
+      /* ✅ MOBILE: lighten the hero overlay (this is what makes it dark) */
+      .hero::after{
+        background:
+          radial-gradient(700px 420px at 50% 20%, rgba(0,0,0,.02), rgba(0,0,0,.32) 65%),
+          linear-gradient(to bottom, rgba(0,0,0,.02), rgba(7,7,12,.58));
+      }
+
+      /* optional: lift shadows a touch on mobile */
+      .hero::before{
+        filter: saturate(1.08) contrast(1.00) brightness(1.10);
+      }
+
+
       /* hero fits one screen */
       .hero{ padding: 30px 0 16px; }
       .hero::before{ background-position: 60% 18%; }
