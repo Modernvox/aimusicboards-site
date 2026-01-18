@@ -157,31 +157,29 @@
       box-shadow: 0 0 18px rgba(46,204,113,.45);
     }
 
-    /* ---------- HERO (IMAGE BACKGROUND) ---------- */
     .hero{
       position: relative;
-      padding: 54px 0 40px; /* spacing under sticky nav like sample */
+      padding: 54px 0 40px;
       isolation: isolate;
-      min-height: 520px;    /* keeps hero tall enough on desktop */
+      min-height: 520px;
+      overflow: hidden; /* ✅ THIS STOPS THE IMAGE AT THE HERO */
     }
 
-    /* Full-bleed hero background image */
     .hero::before{
       content:"";
       position:absolute;
       inset: 0;
       z-index: -2;
 
-      /* ✅ PUT YOUR CLOUDFLARE IMAGE URL HERE */
       background-image: url("https://imagedelivery.net/fYqzQPf1CS3qAF1vZpfSLw/39dc1675-a55f-4a03-5b8f-de464d774c00/public");
       background-size: cover;
-      background-position: center top; /* matches sample composition */
+      background-position: center top;
       background-repeat: no-repeat;
 
-      /* optional: slight boost */
       filter: saturate(1.05) contrast(1.05);
-      transform: scale(1.02); /* avoids edge seams on some browsers */
+      transform: scale(1.02);
     }
+
 
 
     /* Centered hero container (fix desktop centering) */
