@@ -29,7 +29,14 @@
 
       --radius: 18px;
       --shadow: 0 18px 50px rgba(0,0,0,.45);
-      --max: 1100px;
+
+      /* Content width like the screenshot */
+      --max: 1180px;
+
+      /* HERO full-bleed background image (replace with your real hero background if you have one) */
+      --hero-bg: url("https://imagedelivery.net/fYqzQPf1CS3qAF1vZpfSLw/fe3c6d7d-db0f-4736-2eeb-baac5d2d2000/public");
+      /* ^ If this is your host image, keep it; otherwise swap --hero-bg to your bokeh/arena background.
+         The layout will still be correct either way. */
     }
 
     *{ box-sizing: border-box; }
@@ -37,16 +44,18 @@
     body{
       margin:0;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-      background:
-        radial-gradient(1200px 700px at 50% 20%, rgba(109,92,255,.22), rgba(0,0,0,0) 60%),
-        radial-gradient(1000px 600px at 70% 35%, rgba(74,163,255,.18), rgba(0,0,0,0) 55%),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
       overflow-x:hidden;
     }
 
     a{ color: inherit; text-decoration: none; }
-    .wrap{ width: min(var(--max), calc(100% - 48px)); margin: 0 auto; }
+
+    /* Content wrapper */
+    .wrap{
+      width: min(var(--max), calc(100% - 48px));
+      margin: 0 auto;
+    }
 
     /* ---------- Top Nav ---------- */
     header{
@@ -54,7 +63,7 @@
       top: 0;
       z-index: 50;
       backdrop-filter: blur(10px);
-      background: linear-gradient(to bottom, rgba(7,7,12,.75), rgba(7,7,12,.35));
+      background: linear-gradient(to bottom, rgba(7,7,12,.78), rgba(7,7,12,.28));
       border-bottom: 1px solid rgba(255,255,255,.08);
     }
     .nav{
@@ -69,6 +78,7 @@
       letter-spacing: .6px;
       text-transform: uppercase;
       font-size: 20px;
+      white-space: nowrap;
     }
     .navlinks{
       display:flex;
@@ -85,6 +95,7 @@
       display:flex;
       align-items:center;
       gap: 12px;
+      white-space: nowrap;
     }
 
     /* ---------- Buttons / Pills ---------- */
@@ -113,6 +124,9 @@
       background: linear-gradient(180deg, var(--cta2), var(--cta));
       border-color: rgba(0,0,0,.2);
       color: #1a0f05;
+      padding: 14px 22px; /* closer to screenshot */
+      border-radius: 10px;
+      box-shadow: 0 14px 38px rgba(0,0,0,.35);
     }
 
     .pill{
@@ -122,7 +136,7 @@
       padding: 10px 12px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
+      background: rgba(0,0,0,.22);
       font-weight: 900;
       letter-spacing: .4px;
       text-transform: uppercase;
@@ -145,60 +159,70 @@
       box-shadow: 0 0 18px rgba(46,204,113,.45);
     }
 
-    /* ---------- Hero ---------- */
+    /* ---------- HERO (FULL-WIDTH BACKGROUND LIKE SCREENSHOT) ---------- */
     .hero{
       position: relative;
-      padding: 44px 0 28px;
+      padding: 42px 0 40px;
+      isolation: isolate;
     }
+
+    /* Full-bleed hero background */
     .hero::before{
       content:"";
       position:absolute;
       inset: 0;
+      z-index: -2;
       background:
-        radial-gradient(900px 500px at 30% 20%, rgba(109,92,255,.25), rgba(0,0,0,0) 55%),
-        radial-gradient(900px 500px at 70% 30%, rgba(74,163,255,.20), rgba(0,0,0,0) 55%),
-        linear-gradient(to bottom, rgba(7,7,12,.20), rgba(7,7,12,.95)),
-        url("");
+        radial-gradient(1200px 700px at 50% 22%, rgba(109,92,255,.24), rgba(0,0,0,0) 60%),
+        radial-gradient(1100px 650px at 70% 40%, rgba(74,163,255,.18), rgba(0,0,0,0) 58%),
+        /* Replace with your arena/bokeh image for 1:1 match */
+        var(--hero-bg);
       background-size: cover;
       background-position: center;
-      opacity: .95;
+      filter: saturate(1.05) contrast(1.03);
+      opacity: .42; /* let the stars/bokeh feel come through without killing text */
+    }
+
+    /* Dark vignette + bottom fade like screenshot */
+    .hero::after{
+      content:"";
+      position:absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(900px 540px at 50% 18%, rgba(0,0,0,.05), rgba(0,0,0,.55) 65%),
+        linear-gradient(to bottom, rgba(0,0,0,.10), rgba(7,7,12,.92));
       pointer-events:none;
     }
+
+    /* Hero layout: host is a cutout on left, text centered */
     .hero-inner{
       position: relative;
       display:grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: 280px 1fr;
       gap: 28px;
       align-items: center;
-      padding-top: 18px;
+      padding-top: 10px;
     }
+
+    /* Host cutout (NO card frame; matches screenshot vibe) */
     .host{
       width: 100%;
-      aspect-ratio: 3 / 4;
-      border-radius: 22px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
-        url("https://imagedelivery.net/fYqzQPf1CS3qAF1vZpfSLw/fe3c6d7d-db0f-4736-2eeb-baac5d2d2000/public");
-      background-size: cover;
-      background-position: center;
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(255,255,255,.10);
-      overflow:hidden;
+      height: 340px;
+      background-image: url("https://imagedelivery.net/fYqzQPf1CS3qAF1vZpfSLw/fe3c6d7d-db0f-4736-2eeb-baac5d2d2000/public");
+      background-repeat: no-repeat;
+      background-size: contain;
+      background-position: left center;
+      filter: drop-shadow(0 18px 38px rgba(0,0,0,.55));
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      opacity: .98;
     }
-    .hero-copy{ padding: 6px 0; }
-    .headline{
-      font-size: clamp(36px, 5.2vw, 64px);
-      line-height: 1.05;
-      margin: 0 0 10px 0;
-      font-weight: 900;
-      letter-spacing: -.8px;
-      text-transform: uppercase;
-    }
-    .subhead{
-      margin: 0 0 18px 0;
-      font-size: clamp(15px, 1.8vw, 18px);
-      color: rgba(255,255,255,.74);
-      max-width: 720px;
+
+    .hero-copy{
+      padding: 8px 0;
+      text-align: center; /* key difference vs your previous left-aligned */
     }
 
     .hero-toprow{
@@ -206,16 +230,36 @@
       flex-wrap: wrap;
       gap: 10px;
       align-items:center;
-      margin-bottom: 14px;
+      justify-content: center;
+      margin-bottom: 18px;
     }
-    .statusText{
+
+    .headline{
+      font-size: clamp(34px, 5.1vw, 66px);
+      line-height: 1.02;
+      margin: 0 0 12px 0;
+      font-weight: 900;
+      letter-spacing: -.8px;
+      text-transform: uppercase;
+      text-shadow: 0 10px 36px rgba(0,0,0,.55);
+    }
+
+    .subhead{
+      margin: 0 auto 18px auto;
+      font-size: clamp(15px, 1.8vw, 18px);
       color: rgba(255,255,255,.78);
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: .2px;
+      max-width: 760px;
+      text-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    .hero-actions{
+      display:flex;
+      justify-content:center;
+      margin-bottom: 14px;
     }
 
     .nowplaying{
+      margin: 0 auto;
       margin-top: 10px;
       padding: 14px 16px;
       border-radius: 16px;
@@ -224,6 +268,7 @@
       backdrop-filter: blur(8px);
       box-shadow: 0 10px 30px rgba(0,0,0,.30);
       max-width: 760px;
+      text-align: left;
     }
     .npKicker{
       font-size: 12px;
@@ -245,10 +290,10 @@
       color: rgba(255,255,255,.70);
     }
 
-    /* ---------- Leaderboard Screen ---------- */
+    /* ---------- Leaderboard Screen (match screenshot: big, centered, neon bars feel) ---------- */
     .screen{
       position: relative;
-      margin-top: 26px;
+      margin-top: 28px;
       border-radius: 22px;
       background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
       border: 1px solid rgba(255,255,255,.14);
@@ -260,18 +305,20 @@
       position:absolute;
       inset:-2px;
       background:
-        radial-gradient(700px 250px at 50% 0%, rgba(109,92,255,.22), rgba(0,0,0,0) 60%),
-        radial-gradient(600px 220px at 50% 40%, rgba(212,175,55,.16), rgba(0,0,0,0) 60%);
+        radial-gradient(900px 260px at 50% 0%, rgba(109,92,255,.22), rgba(0,0,0,0) 60%),
+        radial-gradient(850px 240px at 50% 38%, rgba(212,175,55,.16), rgba(0,0,0,0) 60%);
       pointer-events:none;
     }
     .screen-inner{ position: relative; padding: 22px; }
+
     .screen-head{
       display:flex;
       align-items:center;
-      justify-content: space-between;
+      justify-content: center;
       gap: 12px;
       flex-wrap: wrap;
       margin-bottom: 10px;
+      text-align:center;
     }
     .screen-title{
       font-weight: 900;
@@ -286,6 +333,7 @@
       align-items:center;
       gap: 10px;
       flex-wrap: wrap;
+      justify-content: center;
     }
     .mini-muted{
       font-size: 12px;
@@ -294,61 +342,68 @@
       font-weight: 700;
     }
 
-    /* Podium (Top 3 cards) */
+    /* Podium (kept for your script; visually closer to screenshot bars) */
     .podium{
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin: 12px 0 14px;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin: 14px 0 14px;
     }
     .pod{
-      border-radius: 18px;
+      border-radius: 14px;
       border: 1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.32);
+      background: rgba(0,0,0,.30);
       backdrop-filter: blur(8px);
-      padding: 14px 14px 12px;
+      padding: 14px 16px;
       box-shadow: 0 10px 28px rgba(0,0,0,.30);
-      min-height: 116px;
-      display:flex;
-      flex-direction: column;
-      gap: 6px;
+      display:grid;
+      grid-template-columns: 60px 1fr 120px;
+      gap: 12px;
+      align-items:center;
+      min-height: 58px;
     }
     .pod .rank{
       font-weight: 900;
       letter-spacing: .6px;
       text-transform: uppercase;
-      font-size: 12px;
-      color: rgba(255,255,255,.72);
+      font-size: 14px;
+      color: rgba(255,255,255,.78);
+      text-align:center;
     }
     .pod .track{
       font-weight: 900;
       letter-spacing: .2px;
       text-transform: uppercase;
-      font-size: 13px;
+      font-size: 16px;
       color: rgba(255,255,255,.92);
       line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .pod .meta{
-      font-size: 12px;
-      color: rgba(255,255,255,.68);
-    }
+    .pod .meta{ display:none; } /* screenshot bars don’t show extra meta */
     .pod .score{
-      margin-top: auto;
       font-weight: 900;
-      font-size: 18px;
+      font-size: 22px;
       color: rgba(255,255,255,.92);
+      text-align:right;
     }
     .pod.top{
-      border-color: rgba(212,175,55,.28);
-      background: linear-gradient(180deg, rgba(212,175,55,.18), rgba(0,0,0,.32));
+      border-color: rgba(212,175,55,.40);
+      background:
+        linear-gradient(90deg, rgba(212,175,55,.22), rgba(0,0,0,.30) 55%);
     }
+    /* #2 and #3 subtle accents */
+    #top2{ background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(0,0,0,.30) 55%); }
+    #top3{ background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(0,0,0,.30) 55%); }
 
-    /* Desktop table */
+    /* Desktop table (kept) */
     .tablewrap{
       border-radius: 18px;
       border: 1px solid rgba(255,255,255,.12);
       background: rgba(0,0,0,.30);
       overflow:hidden;
+      margin-top: 14px;
     }
     table{
       width:100%;
@@ -420,7 +475,7 @@
     .entry.blue{ background: rgba(74,163,255,.06); }
 
     .ruleline{
-      margin-top: 10px;
+      margin-top: 12px;
       text-align:center;
       font-size: 12px;
       color: rgba(255,255,255,.62);
@@ -438,10 +493,11 @@
     }
     .card{
       border-radius: 18px;
-      background: var(--panel);
+      background: rgba(0,0,0,.26);
       border: 1px solid rgba(255,255,255,.12);
       box-shadow: 0 12px 38px rgba(0,0,0,.35);
       overflow:hidden;
+      backdrop-filter: blur(8px);
     }
     .card h3{
       margin: 0;
@@ -585,22 +641,43 @@
 
     /* ---------- Responsive ---------- */
     @media (max-width: 980px){
-      .hero-inner{ grid-template-columns: 1fr; }
-      .host{ max-width: 420px; aspect-ratio: 16/10; }
+      .navlinks{ display:none; }
+
+      .hero-inner{
+        grid-template-columns: 1fr;
+        gap: 16px;
+        justify-items: center;
+      }
+      .host{
+        height: 220px;
+        width: min(520px, 100%);
+        background-position: center;
+      }
+      .hero-copy{ text-align:center; }
+      .hero-toprow{ justify-content:center; }
+
       .grid2{ grid-template-columns: 1fr; }
       .tiles{ grid-template-columns: repeat(2, 1fr); }
-      .navlinks{ display:none; }
-      .podium{ grid-template-columns: 1fr; }
     }
+
     @media (max-width: 720px){
       .tablewrap{ display:none; }
       .mobileOnly{ display:block; }
+
+      /* Keep leaderboard bars readable */
+      .pod{ grid-template-columns: 52px 1fr 92px; }
+      .pod .track{ font-size: 14px; }
+      .pod .score{ font-size: 18px; }
     }
+
     @media (max-width: 520px){
       .wrap{ width: calc(100% - 28px); }
       .nav{ height: 68px; }
       .brand{ font-size: 18px; }
+
       .btn{ padding: 11px 14px; border-radius: 12px; }
+      .btn.cta{ width: 100%; max-width: 320px; }
+
       .screen-inner{ padding: 16px; }
       .tiles{ grid-template-columns: 1fr; }
     }
@@ -688,6 +765,7 @@
               <div class="score">—</div>
               <div class="meta">—</div>
             </div>
+
             <div class="pod" id="top2">
               <div class="rank">#2</div>
               <div class="track">—</div>
@@ -695,6 +773,7 @@
               <div class="score">—</div>
               <div class="meta">—</div>
             </div>
+
             <div class="pod" id="top3">
               <div class="rank">#3</div>
               <div class="track">—</div>
@@ -831,7 +910,7 @@
     </div>
   </main>
 
-  <!-- ✅ YOUR SCRIPT (integrated) -->
+  <!-- ✅ YOUR SCRIPT (unchanged) -->
   <script>
     const QUALIFYING_MIN = 30;
 
