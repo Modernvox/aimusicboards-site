@@ -211,6 +211,68 @@
       text-transform: uppercase;
       text-shadow: 0 12px 40px rgba(0,0,0,.60);
     }
+/* Base button upgrade */
+.live-btn{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 14px;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    rgba(255,59,48,.95),
+    rgba(210,28,20,.95)
+  );
+
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow:
+    0 18px 40px rgba(255,59,48,.45),
+    inset 0 1px 0 rgba(255,255,255,.25);
+
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+/* hover / tap */
+.live-btn:hover{
+  transform: translateY(-1px);
+  box-shadow:
+    0 24px 48px rgba(255,59,48,.55),
+    inset 0 1px 0 rgba(255,255,255,.35);
+}
+
+/* LIVE dot */
+.live-btn .live-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ff3b30;
+  box-shadow: 0 0 14px rgba(255,59,48,.8);
+  position: relative;
+}
+
+/* pulsing ring */
+.live-btn .live-dot::after{
+  content:"";
+  position:absolute;
+  inset:-6px;
+  border-radius:999px;
+  border: 1px solid rgba(255,59,48,.7);
+  animation: livePulse 1.2s ease-out infinite;
+}
+
+@keyframes livePulse{
+  0%   { transform: scale(.6); opacity:.9; }
+  70%  { transform: scale(1.2); opacity:.15; }
+  100% { transform: scale(1.3); opacity:0; }
+}
+
 
     .subhead{
       margin: 0 auto 20px auto;
@@ -724,7 +786,14 @@
         </nav>
 
         <div class="navright">
-          <a class="btn primary" href="https://www.tiktok.com/@snapink.official" target="_blank" rel="noopener">Watch Live</a>
+          <a class="btn primary live-btn"
+   href="https://www.tiktok.com/@snapink.official"
+   target="_blank"
+   rel="noopener">
+  <span class="live-dot"></span>
+  Watch Live
+</a>
+
           
         </div>
       </div>
