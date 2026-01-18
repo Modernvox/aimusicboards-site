@@ -308,6 +308,15 @@
 .fanBtn:hover{ background: rgba(255,255,255,.09); }
 .fanBtn:disabled{ opacity:.55; cursor:not-allowed; }
 
+.fanInline{
+  margin-top: 6px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .35px;
+  font-size: 12px;
+  color: rgba(255,255,255,.72);
+}
+.fanInline b{ color: var(--gold, #d4af37); }
 
     .qualify{
       font-size: 12px;
@@ -600,254 +609,297 @@
 </div>
 
  <script>
-  const lastUpdatedEl = document.getElementById("lastUpdated");
-  const refreshBtn = document.getElementById("refreshBtn");
+    const lastUpdatedEl = document.getElementById("lastUpdated");
+    const refreshBtn = document.getElementById("refreshBtn");
 
-  function fmtTime(d){
-    return d.toLocaleString(undefined, {
-      month: "short",
-      day: "2-digit",
-      hour: "numeric",
-      minute: "2-digit"
-    });
-  }
-
-  function escapeHtml(s){
-    return String(s ?? "").replace(/[&<>"']/g, m => ({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#039;"
-    }[m]));
-  }
-
-  function safeNumber(n, fallback="—"){
-    const x = Number(n);
-    return Number.isFinite(x) ? String(x) : fallback;
-  }
-
-  // ---------------- Fan voting helpers ----------------
-  function openVoteModal(){
-    const m = document.getElementById("voteModal");
-    if (m) m.style.display = "block";
-  }
-  function closeVoteModal(){
-    const m = document.getElementById("voteModal");
-    if (m) m.style.display = "none";
-  }
-
-  (function bindVoteModal(){
-    const closeBtn = document.getElementById("voteModalClose");
-    const okBtn = document.getElementById("voteModalOk");
-    const backdrop = document.getElementById("voteModalBackdrop");
-    closeBtn?.addEventListener("click", closeVoteModal);
-    okBtn?.addEventListener("click", closeVoteModal);
-    backdrop?.addEventListener("click", closeVoteModal);
-  })();
-
-  async function fetchVoteStats(submissionId){
-    const r = await fetch(`/api/vote_stats?submission_id=${encodeURIComponent(submissionId)}`, { cache:"no-store" });
-    return await r.json();
-  }
-
-  async function postVote(submissionId, rating){
-    const r = await fetch("/api/vote", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ submission_id: submissionId, rating })
-    });
-    const j = await r.json().catch(() => ({}));
-    return { ok: r.ok && j.ok, status: r.status, body: j };
-  }
-
-  async function buildFanVoteBox(submissionId){
-    const box = document.createElement("div");
-    box.className = "fanVoteBox";
-    box.innerHTML = `
-      <div class="fanRow">
-        <div class="fanMeta">
-          Fan: <b class="fanAvg">—</b> (<span class="fanCount">—</span>)
-        </div>
-
-        <div class="fanControls">
-          <input class="fanSlider" type="range" min="1" max="10" step="1" value="8" aria-label="Fan vote slider" />
-          <div class="fanValue">8</div>
-          <button class="fanBtn" type="button">Vote</button>
-        </div>
-      </div>
-      <div class="fanMeta fanHint" style="margin-top:8px; color:rgba(255,255,255,.70);"></div>
-    `;
-
-    const avgEl = box.querySelector(".fanAvg");
-    const countEl = box.querySelector(".fanCount");
-    const hintEl = box.querySelector(".fanHint");
-    const slider = box.querySelector(".fanSlider");
-    const valueEl = box.querySelector(".fanValue");
-    const btn = box.querySelector(".fanBtn");
-
-    function setMeta(avg, count){
-      if (avgEl) avgEl.textContent = (Number.isFinite(avg) && avg > 0) ? avg.toFixed(2) : "—";
-      if (countEl) countEl.textContent = String(count ?? "—");
+    function fmtTime(d){
+        return d.toLocaleString(undefined, {
+            month: "short",
+            day: "2-digit",
+            hour: "numeric",
+            minute: "2-digit"
+        });
     }
 
-    slider?.addEventListener("input", () => {
-      if (valueEl) valueEl.textContent = String(slider.value);
-    });
-
-    // load stats
-    try{
-      const st = await fetchVoteStats(submissionId);
-      setMeta(Number(st.avg_rating || 0), Number(st.vote_count || 0));
-
-      if (st.your_vote != null){
-        if (hintEl) hintEl.textContent = `You already voted: ${st.your_vote}/10`;
-        if (btn) btn.disabled = true;
-        if (slider) slider.disabled = true;
-        if (valueEl) valueEl.textContent = String(st.your_vote);
-        if (slider) slider.value = String(st.your_vote);
-      } else {
-        if (hintEl) hintEl.textContent = "Vote once (1 = horrible, 10 = phenomenal).";
-      }
-    } catch {
-      if (hintEl) hintEl.textContent = "Voting temporarily unavailable.";
-      if (btn) btn.disabled = true;
-      if (slider) slider.disabled = true;
+    function escapeHtml(s){
+        return String(s ?? "").replace(/[&<>"']/g, m => ({
+            "&":"&amp;",
+            "<":"&lt;",
+            ">":"&gt;",
+            '"':"&quot;",
+            "'":"&#039;"
+        }[m]));
     }
 
-    btn?.addEventListener("click", async () => {
-      if (!slider || !btn) return;
-      const rating = Number(slider.value);
+    function safeNumber(n, fallback="—"){
+        const x = Number(n);
+        return Number.isFinite(x) ? String(x) : fallback;
+    }
 
-      btn.disabled = true;
-      try{
-        const res = await postVote(submissionId, rating);
+    // ---------------- Fan voting helpers ----------------
+    function openVoteModal(){
+        const m = document.getElementById("voteModal");
+        if (m) m.style.display = "block";
+    }
+    function closeVoteModal(){
+        const m = document.getElementById("voteModal");
+        if (m) m.style.display = "none";
+    }
 
-        if (!res.ok){
-          const err = res.body?.error || "vote_failed";
-          if (hintEl) {
-            if (err === "already_voted" || err === "already_voted_ip") hintEl.textContent = "You already voted for this song.";
-            else if (err === "not_eligible") hintEl.textContent = "Voting is only for leaderboard songs.";
-            else hintEl.textContent = "Could not submit vote. Please try again.";
-          }
-          btn.disabled = false;
-          return;
+    function renderFanInline(el, avg, count){
+        if (!el) return;
+        const a = Number(avg || 0);
+        const c = Number(count || 0);
+
+        if (c <= 0) {
+            el.innerHTML = `Fan Rating: <b>—</b> (0 votes)`;
+            return;
         }
 
-        // update UI
-        const avg = Number(res.body.avg_rating || 0);
-        const count = Number(res.body.vote_count || 0);
-        setMeta(avg, count);
-
-        if (hintEl) hintEl.textContent = `Vote recorded: ${rating}/10`;
-        if (slider) slider.disabled = true;
-
-        openVoteModal();
-      } catch {
-        if (hintEl) hintEl.textContent = "Could not submit vote. Please try again.";
-        btn.disabled = false;
-      }
-    });
-
-    return box;
-  }
-
-  // ---------------- Main load ----------------
-  async function load(){
-    // immediate UI feedback
-    lastUpdatedEl.textContent = "Updated: …";
-
-    let j;
-    try{
-      const r = await fetch("/api/board", { cache: "no-store" });
-      j = await r.json();
-      lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
-    }catch(e){
-      lastUpdatedEl.textContent = "Updated: —";
-      const rows = document.getElementById("rows");
-      const cards = document.getElementById("cards");
-      rows.innerHTML = `<tr><td colspan="5" class="muted">Unable to load right now. Please refresh.</td></tr>`;
-      cards.innerHTML = `<div class="empty">Unable to load right now. Please refresh.</div>`;
-      return;
+        el.innerHTML = `Fan Rating: <b>⭐ ${a.toFixed(2)}</b> (${c} ${c === 1 ? "vote" : "votes"})`;
     }
 
-    const rows = document.getElementById("rows");
-    const cards = document.getElementById("cards");
-    rows.innerHTML = "";
-    cards.innerHTML = "";
-
-    const items = Array.isArray(j?.items) ? j.items : [];
-
-    if (items.length === 0){
-      rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
-      cards.innerHTML = `<div class="empty">No approved tracks yet.</div>`;
-      return;
+    function updateInlineFanLabels(submissionId, avg, count){
+        if (!submissionId) return;
+        document
+            .querySelectorAll(
+                `[data-fan-inline="1"][data-submission-id="${CSS.escape(submissionId)}"]`
+            )
+            .forEach(el => renderFanInline(el, avg, count));
     }
 
-    // IMPORTANT: use for..of so we can await vote box building
-    for (let idx = 0; idx < items.length; idx++){
-      const it = items[idx];
-      const rank = idx + 1;
+    (function bindVoteModal(){
+        const closeBtn = document.getElementById("voteModalClose");
+        const okBtn = document.getElementById("voteModalOk");
+        const backdrop = document.getElementById("voteModalBackdrop");
+        closeBtn?.addEventListener("click", closeVoteModal);
+        okBtn?.addEventListener("click", closeVoteModal);
+        backdrop?.addEventListener("click", closeVoteModal);
+    })();
 
-      const submissionId = String(it.submission_id || "").trim();
-      const artist = escapeHtml(it.artist_name);
-      const track = escapeHtml(it.track_title);
-      const total = safeNumber(it.total);
-      const url = String(it.track_url ?? "");
-
-      // Desktop main row
-      const tr = document.createElement("tr");
-      tr.className = rank === 1 ? "rank-1" : (rank === 2 ? "rank-2" : (rank === 3 ? "rank-3" : ""));
-      tr.innerHTML = `
-        <td><strong>#${rank}</strong></td>
-        <td>${artist || "—"}</td>
-        <td>${track || "—"}</td>
-        <td><strong>${total}</strong></td>
-        <td>${url ? `<a class="listen" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
-      `;
-      rows.appendChild(tr);
-
-      // Desktop vote row (full-width)
-      const tr2 = document.createElement("tr");
-      tr2.innerHTML = `<td class="fanTd" colspan="5"></td>`;
-      rows.appendChild(tr2);
-
-      if (submissionId){
-        const voteBox = await buildFanVoteBox(submissionId);
-        tr2.querySelector("td")?.appendChild(voteBox);
-      } else {
-        tr2.querySelector("td").innerHTML = `<div class="muted">Voting unavailable (missing submission_id).</div>`;
-      }
-
-      // Mobile card
-      const div = document.createElement("div");
-      div.className = "item" + (rank === 1 ? " top1" : "");
-      div.innerHTML = `
-        <div class="rankBox">#${rank}</div>
-        <div class="meta2">
-          <div class="artist">${artist || "—"}</div>
-          <div class="track">${track || "—"}</div>
-          <div class="row2">
-            <div class="scorePill">Total: <b>${total}</b></div>
-            ${url ? `<a class="btn" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="btn" style="opacity:.5;cursor:default;">No Link</span>`}
-          </div>
-          <div class="fanMount" style="margin-top:10px;"></div>
-        </div>
-      `;
-      cards.appendChild(div);
-
-      const mount = div.querySelector(".fanMount");
-      if (mount && submissionId){
-        const voteBox2 = await buildFanVoteBox(submissionId);
-        mount.appendChild(voteBox2);
-      }
+    async function fetchVoteStats(submissionId){
+        const r = await fetch(`/api/vote_stats?submission_id=${encodeURIComponent(submissionId)}`, { cache:"no-store" });
+        return await r.json();
     }
-  }
 
-  refreshBtn.addEventListener("click", load);
-  load();
-  setInterval(load, 30000);
+    async function postVote(submissionId, rating){
+        const r = await fetch("/api/vote", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ submission_id: submissionId, rating })
+        });
+        const j = await r.json().catch(() => ({}));
+        return { ok: r.ok && j.ok, status: r.status, body: j };
+    }
+
+    async function buildFanVoteBox(submissionId){
+        const box = document.createElement("div");
+        box.className = "fanVoteBox";
+        box.innerHTML = `
+            <div class="fanRow">
+                <div class="fanMeta">
+                    Fan: <b class="fanAvg">—</b> (<span class="fanCount">—</span>)
+                </div>
+
+                <div class="fanControls">
+                    <input class="fanSlider" type="range" min="1" max="10" step="1" value="8" aria-label="Fan vote slider" />
+                    <div class="fanValue">8</div>
+                    <button class="fanBtn" type="button">Vote</button>
+                </div>
+            </div>
+            <div class="fanMeta fanHint" style="margin-top:8px; color:rgba(255,255,255,.70);"></div>
+        `;
+
+        const avgEl = box.querySelector(".fanAvg");
+        const countEl = box.querySelector(".fanCount");
+        const hintEl = box.querySelector(".fanHint");
+        const slider = box.querySelector(".fanSlider");
+        const valueEl = box.querySelector(".fanValue");
+        const btn = box.querySelector(".fanBtn");
+
+        function setMeta(avg, count){
+            const a = Number(avg || 0);
+            const c = Number(count || 0);
+
+            if (avgEl) avgEl.textContent = (Number.isFinite(a) && a > 0) ? a.toFixed(2) : "—";
+            if (countEl) countEl.textContent = String(Number.isFinite(c) ? c : "—");
+
+            // ✅ keep the inline labels in sync too
+            updateInlineFanLabels(submissionId, a, c);
+        }
+
+        slider?.addEventListener("input", () => {
+            if (valueEl) valueEl.textContent = String(slider.value);
+        });
+
+        // load stats
+        try{
+            const st = await fetchVoteStats(submissionId);
+            const a = Number(st.avg_rating || 0);
+            const c = Number(st.vote_count || 0);
+
+            setMeta(a, c);
+
+            if (st.your_vote != null){
+                if (hintEl) hintEl.textContent = `You already voted: ${st.your_vote}/10`;
+                if (btn) btn.disabled = true;
+                if (slider) slider.disabled = true;
+                if (valueEl) valueEl.textContent = String(st.your_vote);
+                if (slider) slider.value = String(st.your_vote);
+            } else {
+                if (hintEl) hintEl.textContent = "Vote once (1 = horrible, 10 = phenomenal).";
+            }
+        } catch {
+            if (hintEl) hintEl.textContent = "Voting temporarily unavailable.";
+            if (btn) btn.disabled = true;
+            if (slider) slider.disabled = true;
+        }
+
+        btn?.addEventListener("click", async () => {
+            if (!slider || !btn) return;
+
+            const rating = Number(slider.value);
+            btn.disabled = true;
+
+            try{
+                const res = await postVote(submissionId, rating);
+
+                if (!res.ok){
+                    const err = res.body?.error || "vote_failed";
+                    if (hintEl) {
+                        if (err === "already_voted" || err === "already_voted_ip") hintEl.textContent = "You already voted for this song.";
+                        else if (err === "not_eligible") hintEl.textContent = "Voting is only for leaderboard songs.";
+                        else hintEl.textContent = "Could not submit vote. Please try again.";
+                    }
+                    btn.disabled = false;
+                    return;
+                }
+
+                // update UI (and inline)
+                const avg = Number(res.body.avg_rating || 0);
+                const count = Number(res.body.vote_count || 0);
+                setMeta(avg, count);
+
+                if (hintEl) hintEl.textContent = `Vote recorded: ${rating}/10`;
+                if (slider) slider.disabled = true;
+
+                openVoteModal();
+            } catch {
+                if (hintEl) hintEl.textContent = "Could not submit vote. Please try again.";
+                btn.disabled = false;
+            }
+        });
+
+        return box;
+    }
+
+    // ---------------- Main load ----------------
+    async function load(){
+        // immediate UI feedback
+        lastUpdatedEl.textContent = "Updated: …";
+
+        let j;
+        try{
+            const r = await fetch("/api/board", { cache: "no-store" });
+            j = await r.json();
+            lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
+        }catch(e){
+            lastUpdatedEl.textContent = "Updated: —";
+            const rows = document.getElementById("rows");
+            const cards = document.getElementById("cards");
+            rows.innerHTML = `<tr><td colspan="5" class="muted">Unable to load right now. Please refresh.</td></tr>`;
+            cards.innerHTML = `<div class="empty">Unable to load right now. Please refresh.</div>`;
+            return;
+        }
+
+        const rows = document.getElementById("rows");
+        const cards = document.getElementById("cards");
+        rows.innerHTML = "";
+        cards.innerHTML = "";
+
+        const items = Array.isArray(j?.items) ? j.items : [];
+
+        if (items.length === 0){
+            rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
+            cards.innerHTML = `<div class="empty">No approved tracks yet.</div>`;
+            return;
+        }
+
+        for (let idx = 0; idx < items.length; idx++){
+            const it = items[idx];
+            const rank = idx + 1;
+
+            const submissionId = String(it.submission_id || "").trim();
+            const artist = escapeHtml(it.artist_name);
+            const track = escapeHtml(it.track_title);
+            const total = safeNumber(it.total);
+            const url = String(it.track_url ?? "");
+
+            // Desktop main row
+            const tr = document.createElement("tr");
+            tr.className = rank === 1 ? "rank-1" : (rank === 2 ? "rank-2" : (rank === 3 ? "rank-3" : ""));
+            tr.innerHTML = `
+                <td><strong>#${rank}</strong></td>
+                <td>${artist || "—"}</td>
+                <td>
+                    ${track || "—"}
+                    <div class="fanInline" data-fan-inline="1" data-submission-id="${escapeHtml(submissionId)}">
+                        Fan Rating: <b>—</b> (0 votes)
+                    </div>
+                </td>
+                <td><strong>${total}</strong></td>
+                <td>${url ? `<a class="listen" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
+            `;
+            rows.appendChild(tr);
+
+            // Desktop vote row (full-width)
+            const tr2 = document.createElement("tr");
+            tr2.innerHTML = `<td class="fanTd" colspan="5"></td>`;
+            rows.appendChild(tr2);
+
+            if (submissionId){
+                const voteBox = await buildFanVoteBox(submissionId);
+                tr2.querySelector("td")?.appendChild(voteBox);
+            } else {
+                tr2.querySelector("td").innerHTML = `<div class="muted">Voting unavailable (missing submission_id).</div>`;
+            }
+
+            // Mobile card
+            const div = document.createElement("div");
+            div.className = "item" + (rank === 1 ? " top1" : "");
+            div.innerHTML = `
+                <div class="rankBox">#${rank}</div>
+                <div class="meta2">
+                    <div class="artist">${artist || "—"}</div>
+                    <div class="track">${track || "—"}</div>
+
+                    <div class="fanInline" data-fan-inline="1" data-submission-id="${escapeHtml(submissionId)}">
+                        Fan Rating: <b>—</b> (0 votes)
+                    </div>
+
+                    <div class="row2">
+                        <div class="scorePill">Total: <b>${total}</b></div>
+                        ${url ? `<a class="btn" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="btn" style="opacity:.5;cursor:default;">No Link</span>`}
+                    </div>
+
+                    <div class="fanMount" style="margin-top:10px;"></div>
+                </div>
+            `;
+            cards.appendChild(div);
+
+            const mount = div.querySelector(".fanMount");
+            if (mount && submissionId){
+                const voteBox2 = await buildFanVoteBox(submissionId);
+                mount.appendChild(voteBox2);
+            }
+        }
+    }
+
+    refreshBtn.addEventListener("click", load);
+    load();
+    setInterval(load, 30000);
 </script>
+
 
 </body>
 </html>
