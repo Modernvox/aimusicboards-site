@@ -670,11 +670,9 @@
   const lastUpdatedEl = document.getElementById("lastUpdated");
   const refreshBtn = document.getElementById("refreshBtn");
 
-  // Optional sort buttons (only if you add them in HTML)
-  // <button id="sortJudgeBtn" class="btn sortBtn active" type="button">Judge</button>
-  // <button id="sortFanBtn" class="btn sortBtn" type="button">Fans</button>
-  const sortJudgeBtn = document.getElementById("sortJudgeBtn");
-  const sortFanBtn = document.getElementById("sortFanBtn");
+  // ✅ YOUR REAL SORT BUTTON IDS (from your HTML)
+  const sortJudgeBtn = document.getElementById("sortJudge");
+  const sortFanBtn   = document.getElementById("sortFan");
 
   let sortMode = "judge"; // "judge" | "fan"
 
@@ -707,6 +705,28 @@
     return Number.isFinite(x) ? x : fallback;
   }
 
+  // ✅ IMPORTANT: Convert DB track_url to a real playable URL
+  // - absolute URLs pass through
+  // - "uploads/..." becomes "https://<your-domain>/uploads/..."
+  // - "/uploads/..." becomes "https://<your-domain>/uploads/..."
+  // If your mp3s are actually in R2 with a different public base, change PUBLIC_UPLOAD_BASE below.
+  const PUBLIC_UPLOAD_BASE = ""; // optional override, e.g. "https://aimusicboards.com"
+
+  function makePlayableUrl(raw){
+    const u = String(raw ?? "").trim();
+    if (!u) return "";
+
+    // already absolute
+    if (u.startsWith("http://") || u.startsWith("https://")) return u;
+
+    // if you have a dedicated public base for audio, use it
+    const base = (PUBLIC_UPLOAD_BASE || window.location.origin).replace(/\/+$/, "");
+
+    // normalize relative path
+    const path = u.startsWith("/") ? u : `/${u}`;
+    return `${base}${path}`;
+  }
+
   // ---------------- Fan voting helpers ----------------
   function openVoteModal(){
     const m = document.getElementById("voteModal");
@@ -733,9 +753,7 @@
   function updateInlineFanLabels(submissionId, avg, count){
     if (!submissionId) return;
     document
-      .querySelectorAll(
-        `[data-fan-inline="1"][data-submission-id="${CSS.escape(submissionId)}"]`
-      )
+      .querySelectorAll(`[data-fan-inline="1"][data-submission-id="${CSS.escape(submissionId)}"]`)
       .forEach(el => renderFanInline(el, avg, count));
   }
 
@@ -795,7 +813,7 @@
       if (avgEl) avgEl.textContent = (Number.isFinite(a) && a > 0) ? a.toFixed(2) : "—";
       if (countEl) countEl.textContent = String(Number.isFinite(c) ? c : "—");
 
-      // ✅ keep inline labels in sync too
+      // keep inline labels in sync too
       updateInlineFanLabels(submissionId, a, c);
     }
 
@@ -808,7 +826,6 @@
       const st = await fetchVoteStats(submissionId);
       const a = Number(st.avg_rating || 0);
       const c = Number(st.vote_count || 0);
-
       setMeta(a, c);
 
       if (st.your_vote != null){
@@ -846,7 +863,6 @@
           return;
         }
 
-        // update UI (and inline)
         const avg = Number(res.body.avg_rating || 0);
         const count = Number(res.body.vote_count || 0);
         setMeta(avg, count);
@@ -854,7 +870,7 @@
         if (hintEl) hintEl.textContent = `Vote recorded: ${rating}/10`;
         if (slider) slider.disabled = true;
 
-        // ✅ If user is sorting by fan, re-render list so rank order updates immediately
+        // if sorting by fan, refresh ranks after vote
         if (sortMode === "fan") {
           try { await load(); } catch {}
         }
@@ -873,10 +889,8 @@
   function setSortMode(mode){
     sortMode = (mode === "fan") ? "fan" : "judge";
 
-    if (sortJudgeBtn && sortFanBtn){
-      sortJudgeBtn.classList.toggle("active", sortMode === "judge");
-      sortFanBtn.classList.toggle("active", sortMode === "fan");
-    }
+    sortJudgeBtn?.classList.toggle("active", sortMode === "judge");
+    sortFanBtn?.classList.toggle("active", sortMode === "fan");
   }
 
   sortJudgeBtn?.addEventListener("click", () => { setSortMode("judge"); load(); });
@@ -884,7 +898,6 @@
 
   // ---------------- Main load ----------------
   async function load(){
-    // immediate UI feedback
     lastUpdatedEl.textContent = "Updated: …";
 
     let j;
@@ -914,8 +927,7 @@
       return;
     }
 
-    // ✅ If /api/board already includes fan_avg/fan_votes, sort client-side easily.
-    // If not, it will fall back to judge order.
+    // sort by fan if the API provides fan_avg/fan_votes (your sample does)
     if (sortMode === "fan"){
       items = items.slice().sort((a, b) => {
         const aAvg = safeNum(a.fan_avg, 0);
@@ -923,23 +935,15 @@
         const aVotes = safeNum(a.fan_votes, 0);
         const bVotes = safeNum(b.fan_votes, 0);
 
-        // primary: higher avg
         if (bAvg !== aAvg) return bAvg - aAvg;
-
-        // secondary: more votes
         if (bVotes !== aVotes) return bVotes - aVotes;
 
-        // tertiary: higher judge total (keeps quality)
         const aTotal = safeNum(a.total ?? a.judge_total, 0);
         const bTotal = safeNum(b.total ?? b.judge_total, 0);
         if (bTotal !== aTotal) return bTotal - aTotal;
 
         return 0;
       });
-    } else {
-      // judge mode: if your API returns judge_total, use it for display sort,
-      // otherwise keep backend order.
-      // (No-op; items already ordered by judge score server-side.)
     }
 
     for (let idx = 0; idx < items.length; idx++){
@@ -949,10 +953,15 @@
       const submissionId = String(it.submission_id || "").trim();
       const artist = escapeHtml(it.artist_name);
       const track = escapeHtml(it.track_title);
-      const total = safeNumber(it.total ?? it.judge_total);
-      const url = String(it.track_url ?? "");
 
-      // Inline fan (prefer board-provided values; otherwise it will fill via vote_stats when voteBox loads)
+      // judge total display
+      const total = safeNumber(it.total ?? it.judge_total);
+
+      // ✅ make track_url actually playable
+      const rawUrl = String(it.track_url ?? "");
+      const playUrl = makePlayableUrl(rawUrl);
+
+      // fan inline values if present
       const fanAvgInline = safeNum(it.fan_avg, 0);
       const fanVotesInline = safeNum(it.fan_votes, 0);
 
@@ -969,12 +978,12 @@
           </div>
         </td>
         <td><strong>${total}</strong></td>
-        <td>${url ? `<a class="listen" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
+        <td>${playUrl ? `<a class="listen" href="${escapeHtml(playUrl)}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
       `;
       rows.appendChild(tr);
 
-      // Set inline immediately if we have values from /api/board
-      if (submissionId && fanVotesInline >= 0){
+      // Set inline immediately if we have values
+      if (submissionId){
         updateInlineFanLabels(submissionId, fanAvgInline, fanVotesInline);
       }
 
@@ -1005,7 +1014,7 @@
 
           <div class="row2">
             <div class="scorePill">Total: <b>${total}</b></div>
-            ${url ? `<a class="btn" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="btn" style="opacity:.5;cursor:default;">No Link</span>`}
+            ${playUrl ? `<a class="btn" href="${escapeHtml(playUrl)}" target="_blank" rel="noopener">Play</a>` : `<span class="btn" style="opacity:.5;cursor:default;">No Link</span>`}
           </div>
 
           <div class="fanMount" style="margin-top:10px;"></div>
@@ -1013,8 +1022,8 @@
       `;
       cards.appendChild(div);
 
-      // Inline on mobile too (same selector hits both)
-      if (submissionId && fanVotesInline >= 0){
+      // Inline on mobile too
+      if (submissionId){
         updateInlineFanLabels(submissionId, fanAvgInline, fanVotesInline);
       }
 
@@ -1028,12 +1037,13 @@
 
   refreshBtn.addEventListener("click", load);
 
-  // default state (judge)
+  // default state
   setSortMode("judge");
 
   load();
   setInterval(load, 30000);
 </script>
+
 
 
 
