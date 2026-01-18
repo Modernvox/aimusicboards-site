@@ -1,9 +1,16 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Board • AI Music Boards</title>
+
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Favicons -->
   <link rel="icon" href="/favicon.ico?v=2" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
@@ -12,179 +19,467 @@
 
   <style>
     :root{
-      --bg:#0b0b0f;
-      --panel:rgba(255,255,255,.06);
-      --panel2:rgba(255,255,255,.04);
-      --border:rgba(255,255,255,.14);
-      --muted:rgba(255,255,255,.7);
-      --gold:#d4af37;
+      --bg: #07070c;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.14);
+      --text: rgba(255,255,255,0.95);
+      --muted: rgba(255,255,255,0.68);
+
+      --gold: #d4af37;
+      --green: #2ecc71;
+      --blue: #4aa3ff;
+      --red: #ff3b30;
+
+      --cta: #f08a2a;
+      --cta2: #ff9c45;
+
+      --radius: 18px;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --max: 1180px;
     }
-    body{background:var(--bg);color:#fff;font-family:Inter,system-ui,Arial;margin:0}
-    a{color:var(--gold);text-decoration:none}
-    .muted{color:var(--muted)}
 
-    .wrap{max-width:980px;margin:28px auto;padding:16px}
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x:hidden;
+    }
+    a{ color: inherit; text-decoration:none; }
+    .muted{ color: var(--muted); }
 
-    /* Sticky header */
-    .sticky{
-      position:sticky; top:0; z-index:50;
+    .wrap{
+      width: min(var(--max), calc(100% - 48px));
+      margin: 0 auto;
+    }
+
+    /* ---------- Top Nav (matches homepage) ---------- */
+    header{
+      position: sticky;
+      top: 0;
+      z-index: 60;
       backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      background: rgba(11,11,15,.78);
-      border-bottom: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(to bottom, rgba(7,7,12,.78), rgba(7,7,12,.28));
+      border-bottom: 1px solid rgba(255,255,255,.08);
     }
-    .sticky-inner{
-      max-width:980px;
-      margin:0 auto;
-      padding:12px 16px;
+    .nav{
+      height: 74px;
       display:flex;
       align-items:center;
-      justify-content:space-between;
-      gap:12px;
+      justify-content: space-between;
+      gap: 18px;
     }
     .brand{
-      display:flex; flex-direction:column; gap:2px; min-width:0;
+      font-weight: 900;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      font-size: 20px;
+      white-space: nowrap;
     }
-    .brand h1{
-      margin:0;
-      font-size:16px;
-      font-weight:900;
-      letter-spacing:.2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .navlinks{
+      display:flex;
+      align-items:center;
+      gap: 22px;
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.82);
     }
-    .brand .sub{
-      font-size:12px;
-      color:rgba(255,255,255,.72);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .navlinks a{ opacity:.9; }
+    .navlinks a:hover{ opacity:1; }
+    .navright{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      white-space: nowrap;
     }
-    .meta{
-      display:flex; align-items:center; gap:10px; flex:0 0 auto;
-    }
-    .pill{
-      font-size:12px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color:rgba(255,255,255,.85);
-      white-space:nowrap;
-    }
-    .pill b{color:#fff}
+
     .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:8px 10px; border-radius:12px;
-      border:1px solid rgba(212,175,55,.35);
-      background:rgba(212,175,55,.14);
-      color:#fff; font-weight:800;
-      font-size:12px;
-      white-space:nowrap;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      font-weight: 800;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .btn:hover{ background: rgba(255,255,255,.09); }
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(109,92,255,.95), rgba(74,163,255,.85));
+      border-color: rgba(255,255,255,.14);
     }
 
-    .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;margin-top:16px}
-
-    /* Desktop table */
-    .desktop table{width:100%;border-collapse:collapse}
-    .desktop th,.desktop td{padding:10px;border-bottom:1px solid rgba(255,255,255,.12);text-align:left;vertical-align:top}
-    .desktop th{
-      font-size:12px;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      color:rgba(255,255,255,.75)
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      font-weight: 900;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: rgba(255,255,255,.86);
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      backdrop-filter: blur(8px);
+      white-space: nowrap;
     }
-    .col-rank{width:48px}
-    .col-score{width:70px}
-    .col-listen{width:72px}
 
-    /* Mobile cards */
-    .mobile{display:none}
+    /* ---------- Board background shell (same vibe) ---------- */
+    .page{
+      position: relative;
+      padding: 34px 0 70px;
+      isolation: isolate;
+    }
+    .page::before{
+      content:"";
+      position:absolute;
+      inset: 0;
+      z-index: -2;
+      background:
+        radial-gradient(1200px 700px at 50% 18%, rgba(109,92,255,.22), rgba(0,0,0,0) 60%),
+        radial-gradient(1100px 650px at 70% 42%, rgba(74,163,255,.18), rgba(0,0,0,0) 58%),
+        radial-gradient(900px 520px at 30% 60%, rgba(212,175,55,.10), rgba(0,0,0,0) 62%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,0) 55%);
+      opacity: .85;
+    }
+    .page::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-1;
+      background:
+        radial-gradient(900px 540px at 50% 18%, rgba(0,0,0,.05), rgba(0,0,0,.55) 65%),
+        linear-gradient(to bottom, rgba(0,0,0,.10), rgba(7,7,12,.92));
+      pointer-events:none;
+    }
+
+    .title-row{
+      max-width: 980px;
+      margin: 0 auto 16px auto;
+      text-align: center;
+    }
+    .kicker{
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.70);
+      margin-bottom: 10px;
+    }
+    .h1{
+      margin: 0 0 10px 0;
+      font-size: clamp(28px, 4.2vw, 46px);
+      font-weight: 900;
+      letter-spacing: -.6px;
+      text-transform: uppercase;
+      text-shadow: 0 10px 36px rgba(0,0,0,.55);
+    }
+    .sub{
+      margin: 0 auto;
+      max-width: 780px;
+      color: rgba(255,255,255,.75);
+      line-height: 1.45;
+      font-size: 15px;
+    }
+
+    /* ---------- Board Card ---------- */
+    .board{
+      max-width: 980px;
+      margin: 18px auto 0 auto;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+    .board::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(900px 260px at 50% 0%, rgba(109,92,255,.18), rgba(0,0,0,0) 60%),
+        radial-gradient(850px 240px at 50% 42%, rgba(212,175,55,.12), rgba(0,0,0,0) 60%);
+      pointer-events:none;
+    }
+    .board-inner{ position: relative; padding: 18px; }
+
+    .board-top{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .board-top-left{
+      display:flex;
+      align-items:baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .board-top h2{
+      margin:0;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+    }
+    .qualify{
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+      font-weight: 800;
+      letter-spacing: .25px;
+      white-space: nowrap;
+    }
+    .qualify b{ color: var(--gold); }
+
+    .board-actions{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .refresh{
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+    }
+
+    /* ---------- Desktop Table ---------- */
+    .tablewrap{
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.30);
+      overflow:hidden;
+    }
+    table{ width:100%; border-collapse: collapse; font-size: 13px; }
+    thead th{
+      text-align:left;
+      padding: 12px 14px;
+      background: rgba(255,255,255,.04);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.78);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    tbody td{
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      color: rgba(255,255,255,.86);
+      vertical-align: top;
+    }
+    tbody tr:last-child td{ border-bottom: none; }
+
+    .col-rank{ width: 64px; }
+    .col-total{ width: 110px; }
+    .col-listen{ width: 110px; }
+
+    tbody tr.rank-1{ background: rgba(212,175,55,.10); }
+    tbody tr.rank-2{ background: rgba(74,163,255,.06); }
+    tbody tr.rank-3{ background: rgba(46,204,113,.06); }
+
+    .listen{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .listen:hover{ background: rgba(255,255,255,.09); }
+
+    /* ---------- Mobile Cards ---------- */
+    .mobile{ display:none; }
+    .cards{ display:flex; flex-direction: column; gap: 10px; }
     .item{
-      display:flex; gap:12px; align-items:flex-start;
-      padding:12px;
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:14px;
-      background:var(--panel2);
-      margin-top:10px;
+      display:flex;
+      gap: 12px;
+      align-items:flex-start;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      background: rgba(0,0,0,.30);
+      box-shadow: 0 10px 26px rgba(0,0,0,.28);
     }
-    .rank{
+    .rankBox{
       flex:0 0 auto;
       width:44px; height:44px;
       border-radius:12px;
-      background:rgba(212,175,55,.16);
-      border:1px solid rgba(212,175,55,.35);
-      display:flex; align-items:center; justify-content:center;
-      font-weight:900;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      letter-spacing: .4px;
+      color: rgba(255,255,255,.85);
     }
-    .meta2{flex:1 1 auto; min-width:0}
-    .artist{font-weight:800; font-size:14px; line-height:1.2}
-    .track{font-size:13px; color:rgba(255,255,255,.85); margin-top:2px; line-height:1.25; word-break:break-word}
-    .row2{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px}
-    .score{
-      font-weight:900; font-size:14px;
-      padding:6px 10px; border-radius:999px;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.14);
-      white-space:nowrap;
+    .item.top1 .rankBox{
+      background: rgba(212,175,55,.16);
+      border-color: rgba(212,175,55,.35);
+      color: rgba(255,255,255,.92);
+    }
+    .meta2{ flex:1 1 auto; min-width: 0; }
+    .artist{
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .2px;
+      font-size: 13px;
+      color: rgba(255,255,255,.92);
+      line-height: 1.2;
+    }
+    .track{
+      margin-top: 4px;
+      font-size: 13px;
+      color: rgba(255,255,255,.80);
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    .row2{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .scorePill{
+      font-weight: 900;
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.14);
+      white-space: nowrap;
+    }
+    .scorePill b{ color: var(--gold); }
+
+    .empty{
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.30);
+      color: rgba(255,255,255,.72);
+      text-align: center;
     }
 
+    /* ---------- Responsive ---------- */
+    @media (max-width: 980px){
+      .navlinks{ display:none; }
+    }
     @media (max-width: 720px){
-      .wrap{margin:16px auto}
-      .desktop{display:none}
-      .mobile{display:block}
-      .card{padding:14px}
+      .wrap{ width: calc(100% - 28px); }
+      .nav{ height: 68px; }
+      .brand{ font-size: 18px; }
+
+      .tablewrap{ display:none; }
+      .mobile{ display:block; }
+      .board-inner{ padding: 14px; }
     }
   </style>
 </head>
+
 <body>
+  <!-- NAV (same as homepage) -->
+  <header>
+    <div class="wrap">
+      <div class="nav">
+        <div class="brand">AI MUSIC BOARDS</div>
 
-  <!-- Sticky header (always visible) -->
-  <div class="sticky">
-    <div class="sticky-inner">
-      <div class="brand">
-        <h1>AI Music Authority Board</h1>
-        <div class="sub">Only tracks scoring 30+ make the board.</div>
-      </div>
-      <div class="meta">
-        <div class="pill" id="lastUpdated">Updated: —</div>
-        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+        <nav class="navlinks" aria-label="primary">
+          <a href="https://aimusicboards.com/">Home</a>
+          <a href="https://aimusicboards.com/board" aria-current="page">Leaderboard</a>
+          <a href="https://aimusicboards.com/submit">Submit Music</a>
+        </nav>
+
+        <div class="navright">
+          <a class="btn primary" href="https://www.tiktok.com/@snapink.official" target="_blank" rel="noopener">Watch Live</a>
+          <a class="btn" href="#login">Log In</a>
+        </div>
       </div>
     </div>
-  </div>
+  </header>
 
-  <div class="wrap">
-    <div class="card">
-      <div class="desktop">
-        <table>
-          <thead>
-            <tr>
-              <th class="col-rank">#</th>
-              <th>Artist</th>
-              <th>Track</th>
-              <th class="col-score">Score</th>
-              <th class="col-listen">Listen</th>
-            </tr>
-          </thead>
-          <tbody id="rows">
-            <tr><td colspan="5" class="muted">Loading…</td></tr>
-          </tbody>
-        </table>
+  <!-- PAGE -->
+  <main class="page">
+    <div class="wrap">
+      <div class="title-row">
+        <div class="kicker">Leaderboard</div>
+        <h1 class="h1">AI MUSIC BOARD</h1>
+        <p class="sub">Only tracks scoring <b style="color:var(--gold);font-weight:900;">30+</b> make the board. Updated live during broadcasts.</p>
       </div>
 
-      <div class="mobile" id="cards">
-        <div class="muted">Loading…</div>
-      </div>
+      <section class="board" aria-label="Leaderboard board">
+        <div class="board-inner">
+          <div class="board-top">
+            <div class="board-top-left">
+              <h2>Leaderboard</h2>
+              <div class="qualify">Qualifying: <b>30+</b> total</div>
+            </div>
+
+            <div class="board-actions">
+              <div class="pill" id="lastUpdated">Updated: —</div>
+              <button class="btn refresh" id="refreshBtn" type="button">Refresh</button>
+            </div>
+          </div>
+
+          <!-- Desktop table -->
+          <div class="tablewrap desktop" aria-label="Leaderboard table">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-rank">Rank</th>
+                  <th>Artist</th>
+                  <th>Track</th>
+                  <th class="col-total">Total</th>
+                  <th class="col-listen">Listen</th>
+                </tr>
+              </thead>
+              <tbody id="rows">
+                <tr><td colspan="5" class="muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile cards -->
+          <div class="mobile" aria-label="Mobile leaderboard">
+            <div class="cards" id="cards">
+              <div class="empty muted">Loading…</div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
-  </div>
+  </main>
 
   <script>
     const lastUpdatedEl = document.getElementById("lastUpdated");
     const refreshBtn = document.getElementById("refreshBtn");
 
     function fmtTime(d){
-      // Example: "Jan 17, 12:34 PM"
       return d.toLocaleString(undefined, {
         month: "short",
         day: "2-digit",
@@ -193,64 +488,90 @@
       });
     }
 
-    async function load() {
-      // Show "updating…" immediately
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        '"':"&quot;",
+        "'":"&#039;"
+      }[m]));
+    }
+
+    function safeNumber(n, fallback="—"){
+      const x = Number(n);
+      return Number.isFinite(x) ? String(x) : fallback;
+    }
+
+    async function load(){
+      // immediate UI feedback
       lastUpdatedEl.textContent = "Updated: …";
 
-      const r = await fetch("/api/board", { cache: "no-store" });
-      const j = await r.json();
-
-      // Update timestamp on successful fetch
-      lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
+      let j;
+      try{
+        const r = await fetch("/api/board", { cache: "no-store" });
+        j = await r.json();
+        lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
+      }catch(e){
+        lastUpdatedEl.textContent = "Updated: —";
+        const rows = document.getElementById("rows");
+        const cards = document.getElementById("cards");
+        rows.innerHTML = `<tr><td colspan="5" class="muted">Unable to load right now. Please refresh.</td></tr>`;
+        cards.innerHTML = `<div class="empty">Unable to load right now. Please refresh.</div>`;
+        return;
+      }
 
       const rows = document.getElementById("rows");
       const cards = document.getElementById("cards");
       rows.innerHTML = "";
       cards.innerHTML = "";
 
-      const items = (j.items || []);
+      const items = Array.isArray(j?.items) ? j.items : [];
+
+      if (items.length === 0){
+        rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
+        cards.innerHTML = `<div class="empty">No approved tracks yet.</div>`;
+        return;
+      }
 
       items.forEach((it, idx) => {
+        const rank = idx + 1;
+        const artist = escapeHtml(it.artist_name);
+        const track = escapeHtml(it.track_title);
+        const total = safeNumber(it.total);
+        const url = String(it.track_url ?? "");
+
         // Desktop row
         const tr = document.createElement("tr");
+        tr.className = rank === 1 ? "rank-1" : (rank === 2 ? "rank-2" : (rank === 3 ? "rank-3" : ""));
         tr.innerHTML = `
-          <td>${idx+1}</td>
-          <td>${escapeHtml(it.artist_name)}</td>
-          <td>${escapeHtml(it.track_title)}</td>
-          <td><b>${Number(it.total)}</b></td>
-          <td><a href="${it.track_url}" target="_blank" rel="noopener">Play</a></td>
+          <td><strong>#${rank}</strong></td>
+          <td>${artist || "—"}</td>
+          <td>${track || "—"}</td>
+          <td><strong>${total}</strong></td>
+          <td>${url ? `<a class="listen" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
         `;
         rows.appendChild(tr);
 
         // Mobile card
         const div = document.createElement("div");
-        div.className = "item";
+        div.className = "item" + (rank === 1 ? " top1" : "");
         div.innerHTML = `
-          <div class="rank">${idx+1}</div>
+          <div class="rankBox">#${rank}</div>
           <div class="meta2">
-            <div class="artist">${escapeHtml(it.artist_name)}</div>
-            <div class="track">${escapeHtml(it.track_title)}</div>
+            <div class="artist">${artist || "—"}</div>
+            <div class="track">${track || "—"}</div>
             <div class="row2">
-              <div class="score">Score: ${Number(it.total)}</div>
-              <a class="btn" href="${it.track_url}" target="_blank" rel="noopener">Play</a>
+              <div class="scorePill">Total: <b>${total}</b></div>
+              ${url ? `<a class="btn" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="btn" style="opacity:.5;cursor:default;">No Link</span>`}
             </div>
           </div>
         `;
         cards.appendChild(div);
       });
-
-      if (items.length === 0) {
-        rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
-        cards.innerHTML = `<div class="muted">No approved tracks yet.</div>`;
-      }
     }
 
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-    }
-
-    refreshBtn.addEventListener("click", () => load());
-
+    refreshBtn.addEventListener("click", load);
     load();
     setInterval(load, 5000);
   </script>
