@@ -4,564 +4,505 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AI Music Boards – TikTok Live Overlay</title>
-  <style>
-    :root{
-      --w: 1080;
-      --h: 1920;
+<style>
+  :root{
+    --safeTop: 220px;
+    --safeBottom: 260px;
 
-      --safeTop: 220px;
-      --safeBottom: 260px;
+    --panel: rgba(0,0,0,.52);
+    --border: rgba(255,255,255,.14);
+    --text: rgba(255,255,255,.95);
+    --muted: rgba(255,255,255,.72);
 
-      --panel: rgba(0,0,0,.62);
-      --panel2: rgba(0,0,0,.48);
-      --border: rgba(255,255,255,.16);
-      --text: rgba(255,255,255,.95);
-      --muted: rgba(255,255,255,.72);
-      --muted2: rgba(255,255,255,.55);
+    --gold:#d4af37;
+    --red:#ff3b30;
+    --blue:#5aa2ff;
 
-      --gold: #d4af37;
-      --red: #ff3b30;
-      --green: #2ecc71;
-      --blue: #5aa2ff;
+    --r: 14px;
+    --shadow: 0 12px 28px rgba(0,0,0,.35);
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
+  }
 
-      --radius: 16px;
-      --shadow: 0 16px 40px rgba(0,0,0,.35);
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family: var(--font);
+    color: var(--text);
+    background: transparent;
+    overflow:hidden;
+  }
+  .stage{ position:relative; width:100vw; height:100vh; }
 
-      --base: 18px;
-      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
-    }
+  /* ---- compact chips ---- */
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .dot{
+    width:9px; height:9px; border-radius:999px;
+    background: var(--red);
+    box-shadow: 0 0 14px rgba(255,59,48,.6);
+  }
+  .brand{
+    font-weight: 900;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+  .sub{
+    opacity:.75;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: .2px;
+  }
 
-    @media (min-width: 720px){ :root{ --base: clamp(16px, 1.4vw, 20px); } }
-    @media (min-width: 1000px){ :root{ --base: clamp(18px, 1.1vw, 22px); } }
+  /* ---- layout anchors ---- */
+  .topLeft{
+    position:absolute;
+    top: calc(var(--safeTop) - 70px);
+    left: 16px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    z-index: 5;
+  }
 
-    *{ box-sizing: border-box; }
-    html, body { height:100%; }
-    body{
-      margin:0;
-      font-family: var(--font);
-      color: var(--text);
-      background: transparent;
-      overflow:hidden;
-    }
+  .bottomLeft{
+    position:absolute;
+    left: 16px;
+    bottom: calc(var(--safeBottom) + 16px);
+    display:flex;
+    flex-direction: column;
+    gap:10px;
+    width: min(380px, 64vw);
+    z-index: 5;
+  }
 
-    .stage{
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-    }
+  .rowCard{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    padding: 12px 12px;
+  }
+  .npTop{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .npKicker{
+    font-size: 11px;
+    opacity: .78;
+    font-weight: 900;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+  }
+  .npLine{
+    display:flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .npArtist{
+    font-weight: 1000;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    font-size: 14px;
+  }
+  .npTrack{
+    font-weight: 800;
+    font-size: 13px;
+    opacity:.88;
+  }
 
-    .safe-guides::before,
-    .safe-guides::after{
-      content:"";
-      position:absolute;
-      left:0; right:0;
-      pointer-events:none;
-      z-index:1;
-    }
-    .safe-guides::before{
-      top:0; height: var(--safeTop);
-      background: linear-gradient(to bottom, rgba(255,255,255,.08), rgba(255,255,255,0));
-    }
-    .safe-guides::after{
-      bottom:0; height: var(--safeBottom);
-      background: linear-gradient(to top, rgba(255,255,255,.08), rgba(255,255,255,0));
-    }
+  /* ---- score strip ---- */
+  .scoreStrip{
+    position:absolute;
+    right: 16px;
+    bottom: calc(var(--safeBottom) + 16px);
+    display:flex;
+    gap:10px;
+    z-index: 5;
+  }
+  .stripCard{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    padding: 10px 12px;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  .stripTitle{
+    font-weight: 900;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    font-size: 11px;
+    opacity:.78;
+  }
+  .nums{
+    display:flex;
+    gap: 8px;
+    align-items:center;
+  }
+  .num{
+    width: 26px;
+    height: 26px;
+    border-radius: 10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight: 1000;
+    font-size: 12px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+  }
+  .s-low{ color: var(--red); }
+  .s-mid{ color: rgba(255,255,255,.92); }
+  .s-high{ color: var(--gold); }
 
-    .overlay{
-      position:absolute;
-      inset:0;
-      z-index: 5;
-    }
+  /* ---- tiny leaderboard ---- */
+  .mini-board{
+    position:absolute;
+    right: 16px;
+    top: calc(var(--safeTop) + 12px);
+    width: min(260px, 38vw);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    overflow:hidden;
+    z-index: 5;
+  }
+  .mini-board[data-show="0"]{ display:none; }
 
-    .status-bar{
-      position:absolute;
-      top: calc(var(--safeTop) - 56px);
-      left: 50%;
-      transform: translateX(-50%);
-      display:flex;
-      align-items:center;
-      gap: 12px;
-      padding: 10px 16px;
-      background: rgba(0,0,0,.55);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      backdrop-filter: blur(6px);
-      box-shadow: var(--shadow);
-      letter-spacing: .4px;
-      font-size: calc(var(--base) * .85);
-      white-space: nowrap;
-    }
-    .live-dot{
-      width:10px; height:10px; border-radius:50%;
-      background: var(--red);
-      box-shadow: 0 0 18px rgba(255,59,48,.55);
-    }
-    .brand{
-      font-weight: 800;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.92);
-    }
-    .sep{ opacity:.5; }
+  .mini-head{
+    padding: 10px 12px;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    border-bottom: 1px solid rgba(255,255,255,.10);
+  }
+  .mini-head .title{
+    font-weight: 1000;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+  .mini-head .rule{
+    font-size: 11px;
+    opacity:.72;
+    font-weight: 800;
+  }
+  .mini-item{
+    display:grid;
+    grid-template-columns: 18px 1fr 44px;
+    gap: 8px;
+    align-items:center;
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    font-size: 12px;
+  }
+  .mini-item:last-child{ border-bottom:none; }
+  .rank{ font-weight: 1000; opacity:.85; }
+  .name{
+    font-weight: 900;
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity:.92;
+  }
+  .score{ text-align:right; font-weight: 1000; }
+  .mini-item[data-top="1"] .rank,
+  .mini-item[data-top="1"] .score{ color: var(--gold); }
 
-    .stack{
-      position:absolute;
-      left: 56px;
-      top: calc(var(--safeTop) + 110px);
-      width: min(720px, 72vw);
-      display:flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+  /* ---- verdict toast ---- */
+  .verdict{
+    position:absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(var(--safeBottom) + 88px);
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.16);
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+    font-weight: 1000;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    font-size: 12px;
+    display:none;
+    gap: 10px;
+    align-items:center;
+    z-index: 6;
+  }
+  .verdict[data-state="qualified"],
+  .verdict[data-state="rejected"],
+  .verdict[data-state="accepted"]{ display:inline-flex; }
 
-    .panel{
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
-      overflow:hidden;
-    }
+  .verdict[data-state="qualified"]{ border-color: rgba(212,175,55,.45); }
+  .verdict[data-state="rejected"]{ border-color: rgba(255,59,48,.45); }
+  .verdict[data-state="accepted"]{ border-color: rgba(46,204,113,.45); }
 
-    .now{
-      padding: 16px 18px;
-    }
-    .kicker{
-      font-size: calc(var(--base) * .78);
-      letter-spacing: .6px;
-      text-transform: uppercase;
-      color: var(--muted2);
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.82);
-      font-size: calc(var(--base) * .75);
-    }
-    .row{
-      display:flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      font-size: calc(var(--base) * .98);
-      line-height: 1.2;
-    }
-    .label{
-      color: var(--muted);
-      font-weight: 600;
-      margin-right: 6px;
-    }
-    .value{
-      font-weight: 800;
-      color: rgba(255,255,255,.96);
-    }
-    .track-title{
-      font-weight: 700;
-      color: rgba(255,255,255,.9);
-    }
+  .verdict .tag{
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    font-size: 11px;
+    opacity:.9;
+  }
 
-    .scores{
-      padding: 0;
-    }
-    .scores-header{
-      display:flex;
-      justify-content: space-between;
-      align-items:center;
-      padding: 14px 18px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-    }
-    .scores-header h3{
-      margin:0;
-      font-size: calc(var(--base) * .92);
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.90);
-    }
-    .qualify{
-      font-size: calc(var(--base) * .78);
-      color: rgba(255,255,255,.78);
-    }
-    .qualify b{ color: var(--gold); }
-
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 90px;
-      gap: 0;
-    }
-    .cell{
-      padding: 14px 18px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      font-size: calc(var(--base) * .98);
-    }
-    .cell.cat{
-      color: rgba(255,255,255,.88);
-      font-weight: 700;
-    }
-    .cell.num{
-      text-align:right;
-      font-weight: 900;
-      letter-spacing: .2px;
-    }
-    .cell:last-child,
-    .grid > .cell:nth-last-child(2){
-      border-bottom: none;
-    }
-
-    .s-low{ color: var(--red); }
-    .s-mid{ color: rgba(255,255,255,.92); }
-    .s-high{ color: var(--gold); }
-
-    .verdict{
-      position:absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: calc(var(--safeBottom) + 34px);
-      width: min(920px, 88vw);
-      height: 84px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,.16);
-      background: rgba(0,0,0,.62);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
-      font-weight: 1000;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      font-size: calc(var(--base) * 1.35);
-      opacity: 0;
-      pointer-events:none;
-    }
-    .verdict[data-state="rejected"]{
-      opacity: 1;
-      border-color: rgba(255,59,48,.40);
-      box-shadow: 0 18px 40px rgba(0,0,0,.42), 0 0 26px rgba(255,59,48,.20);
-      color: rgba(255,255,255,.96);
-    }
-    .verdict[data-state="accepted"]{
-      opacity: 1;
-      border-color: rgba(46,204,113,.40);
-      box-shadow: 0 18px 40px rgba(0,0,0,.42), 0 0 26px rgba(46,204,113,.18);
-      color: rgba(255,255,255,.96);
-    }
-    .verdict[data-state="qualified"]{
-      opacity: 1;
-      border-color: rgba(212,175,55,.45);
-      box-shadow: 0 18px 40px rgba(0,0,0,.42), 0 0 28px rgba(212,175,55,.20);
-      color: rgba(255,255,255,.96);
-    }
-    .verdict .tag{
-      padding: 8px 14px;
-      border-radius: 999px;
-      margin-left: 14px;
-      font-size: calc(var(--base) * .78);
-      font-weight: 900;
-      letter-spacing: 1px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.86);
-    }
-
-    .mini-board{
-      position:absolute;
-      right: 46px;
-      top: calc(var(--safeTop) + 120px);
-      width: min(420px, 38vw);
-      opacity: 0;
-      pointer-events:none;
-    }
-    .mini-board[data-show="1"]{ opacity: 1; }
-
-    .mini-head{
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      display:flex;
-      justify-content: space-between;
-      align-items:center;
-    }
-    .mini-head .title{
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .6px;
-      font-size: calc(var(--base) * .9);
-    }
-    .mini-head .rule{
-      font-size: calc(var(--base) * .72);
-      color: rgba(255,255,255,.70);
-    }
-    .mini-list{
-      display:flex;
-      flex-direction: column;
-    }
-    .mini-item{
-      display:grid;
-      grid-template-columns: 34px 1fr 72px;
-      gap: 10px;
-      align-items:center;
-      padding: 12px 16px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      font-size: calc(var(--base) * .92);
-    }
-    .mini-item:last-child{ border-bottom:none; }
-    .rank{
-      font-weight: 900;
-      color: rgba(255,255,255,.82);
-    }
-    .name{
-      font-weight: 800;
-      color: rgba(255,255,255,.90);
-      overflow:hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .score{
-      text-align:right;
-      font-weight: 900;
-      color: rgba(255,255,255,.90);
-    }
-    .mini-item[data-top="1"] .rank,
-    .mini-item[data-top="1"] .score{
-      color: var(--gold);
-    }
-
-    @media (max-width: 520px){
-      :root{ --safeTop: 200px; --safeBottom: 290px; }
-      .stack{ left: 18px; width: 86vw; }
-      .mini-board{ right: 18px; width: 56vw; top: calc(var(--safeTop) + 280px); }
-      .status-bar{ top: calc(var(--safeTop) - 54px); }
-    }
-  </style>
+  /* mobile safety */
+  @media (max-width: 520px){
+    :root{ --safeTop: 200px; --safeBottom: 290px; }
+    .mini-board{ width: 54vw; }
+    .bottomLeft{ width: 70vw; }
+  }
+</style>
 </head>
 
 <body>
-  <div class="stage safe-guides">
-    <div class="overlay">
+  <div class="stage">
 
-      <div class="status-bar" aria-label="status">
-        <span class="live-dot" aria-hidden="true"></span>
+    <!-- top left: brand + queue -->
+    <div class="topLeft">
+      <div class="chip" aria-label="status">
+        <span class="dot" aria-hidden="true"></span>
         <span class="brand" id="brandText">AI MUSIC BOARDS</span>
-        <span class="sep">|</span>
-        <span id="statusText">LIVE</span>
+        <span class="sub" id="statusText">LIVE</span>
       </div>
 
-      <div class="stack">
-        <section class="panel now" aria-label="now reviewing">
-          <div class="kicker">
-            <span class="pill">NOW REVIEWING</span>
-            <span class="pill" id="sessionPill">Queue: —</span>
-          </div>
-
-          <div class="row">
-            <div><span class="label">Artist:</span> <span class="value" id="artistName">WAITING…</span></div>
-            <div><span class="label">Track:</span> <span class="track-title" id="trackTitle">“—”</span></div>
-          </div>
-        </section>
-
-        <section class="panel scores" aria-label="scores">
-          <div class="scores-header">
-            <h3>SCORES</h3>
-            <div class="qualify">Each 1–10 • Combined <b id="qualifyRule">30+</b> to hit leaderboard</div>
-          </div>
-
-          <div class="grid" role="table" aria-label="score grid">
-            <div class="cell cat">Lyrics</div>
-            <div class="cell num s-mid" id="scoreLyrics">0</div>
-
-            <div class="cell cat">Delivery</div>
-            <div class="cell num s-mid" id="scoreDelivery">0</div>
-
-            <div class="cell cat">Originality</div>
-            <div class="cell num s-mid" id="scoreOriginality">0</div>
-
-            <div class="cell cat">Repeatability</div>
-            <div class="cell num s-mid" id="scoreRepeatability">0</div>
-
-            <div class="cell cat">Production</div>
-            <div class="cell num s-mid" id="scoreProduction">0</div>
-          </div>
-        </section>
-      </div>
-
-      <div class="verdict" id="verdictBar" data-state="">
-        <span id="verdictText">—</span>
-        <span class="tag" id="verdictTag">—</span>
-      </div>
-
-      <aside class="panel mini-board" id="miniBoard" data-show="1" aria-label="leaderboard">
-        <div class="mini-head">
-          <div class="title">LEADERBOARD</div>
-          <div class="rule">30+ to qualify</div>
-        </div>
-
-        <div class="mini-list">
-          <div class="mini-item" data-top="1">
-            <div class="rank">1</div>
-            <div class="name" id="lb1Name">—</div>
-            <div class="score" id="lb1Score">—</div>
-          </div>
-
-          <div class="mini-item">
-            <div class="rank">2</div>
-            <div class="name" id="lb2Name">—</div>
-            <div class="score" id="lb2Score">—</div>
-          </div>
-
-          <div class="mini-item">
-            <div class="rank">3</div>
-            <div class="name" id="lb3Name">—</div>
-            <div class="score" id="lb3Score">—</div>
-          </div>
-        </div>
-      </aside>
-
+      <div class="chip" id="sessionPill">Queue: —</div>
     </div>
+
+    <!-- bottom left: now playing compact -->
+    <div class="bottomLeft">
+      <div class="rowCard" aria-label="now reviewing">
+        <div class="npTop">
+          <div class="npKicker">NOW REVIEWING</div>
+          <div class="sub">Qualify <span id="qualifyRule" style="color:var(--gold);font-weight:1000;">30+</span></div>
+        </div>
+
+        <div class="npLine">
+          <div class="npArtist" id="artistName">WAITING…</div>
+          <div class="npTrack" id="trackTitle">“—”</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- bottom right: score strip -->
+    <div class="scoreStrip" aria-label="scores">
+      <div class="stripCard">
+        <div class="stripTitle">Scores</div>
+        <div class="nums">
+          <div class="num s-mid" id="scoreLyrics">0</div>
+          <div class="num s-mid" id="scoreDelivery">0</div>
+          <div class="num s-mid" id="scoreOriginality">0</div>
+          <div class="num s-mid" id="scoreRepeatability">0</div>
+          <div class="num s-mid" id="scoreProduction">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- verdict toast -->
+    <div class="verdict" id="verdictBar" data-state="">
+      <span id="verdictText">—</span>
+      <span class="tag" id="verdictTag">—</span>
+    </div>
+
+    <!-- right side: tiny leaderboard -->
+    <aside class="mini-board" id="miniBoard" data-show="1" aria-label="leaderboard">
+      <div class="mini-head">
+        <div class="title">LEADERBOARD</div>
+        <div class="rule">30+ qualify</div>
+      </div>
+
+      <div class="mini-item" data-top="1">
+        <div class="rank">1</div>
+        <div class="name" id="lb1Name">—</div>
+        <div class="score" id="lb1Score">—</div>
+      </div>
+
+      <div class="mini-item">
+        <div class="rank">2</div>
+        <div class="name" id="lb2Name">—</div>
+        <div class="score" id="lb2Score">—</div>
+      </div>
+
+      <div class="mini-item">
+        <div class="rank">3</div>
+        <div class="name" id="lb3Name">—</div>
+        <div class="score" id="lb3Score">—</div>
+      </div>
+    </aside>
+
   </div>
 
-  <script>
-    // ===== Config =====
-    const API = "https://aimusicboards.com";
-    const POLL_MS = 2000;
-    const QUALIFY_MIN = 30;
 
-    // ===== Helpers =====
-    function $(id){ return document.getElementById(id); }
+ <script>
+  // ===== Config =====
+  const API = "https://aimusicboards.com";
+  const POLL_MS = 2000;
+  const QUALIFY_MIN = 40;
+  const DEBUG = false; // set true when testing
 
-    function setText(id, text){
-      const el = $(id);
-      if (el) el.textContent = text;
+  // ===== Helpers =====
+  function $(id){ return document.getElementById(id); }
+
+  function setText(id, text){
+    const el = $(id);
+    if (el) el.textContent = text;
+  }
+
+  function scoreClass(n){
+    const v = Number(n || 0);
+    if (v <= 3) return "s-low";
+    if (v >= 8) return "s-high";
+    return "s-mid";
+  }
+
+  function setScore(id, n){
+    const el = $(id);
+    if (!el) return;
+    el.textContent = String(n ?? 0);
+    el.classList.remove("s-low","s-mid","s-high");
+    el.classList.add(scoreClass(n));
+  }
+
+  function setVerdict(state, text, tag){
+    const bar = $("verdictBar");
+    if (!bar) return;
+    bar.setAttribute("data-state", state || "");
+    setText("verdictText", text || "—");
+    setText("verdictTag", tag || "—");
+  }
+
+  async function getJSON(url){
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+    const ct = res.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      // still try, but useful for debugging when Cloudflare serves HTML
+      if (DEBUG) console.warn("Non-JSON response:", url, ct);
     }
+    return res.json();
+  }
 
-    function scoreClass(n){
-      const v = Number(n || 0);
-      if (v <= 3) return "s-low";
-      if (v >= 8) return "s-high";
-      return "s-mid";
+  // ===== API Pollers =====
+  async function fetchStatus(){
+    try{
+      const data = await getJSON(`${API}/api/status`);
+      const q = data.queue_count ?? "—";
+      setText("sessionPill", `Queue: ${q}`);
+    }catch(e){
+      if (DEBUG) console.warn("status:", e);
     }
+  }
 
-    function setScore(id, n){
-      const el = $(id);
-      if (!el) return;
-      el.textContent = String(n ?? 0);
-      el.classList.remove("s-low","s-mid","s-high");
-      el.classList.add(scoreClass(n));
+  async function fetchNowPlaying(){
+    try{
+      const data = await getJSON(`${API}/api/now_playing`);
+      const np = data.now_playing || null;
+
+      if (!np){
+        setText("artistName","WAITING…");
+        setText("trackTitle","“—”");
+        setScore("scoreLyrics",0);
+        setScore("scoreDelivery",0);
+        setScore("scoreOriginality",0);
+        setScore("scoreRepeatability",0);
+        setScore("scoreProduction",0);
+        setVerdict("", "—", "—");
+        return;
+      }
+
+      const lyrics = Number(np.lyrics || 0);
+      const delivery = Number(np.delivery || 0);
+      const production = Number(np.production || 0);
+      const originality = Number(np.originality || 0);
+      const replay = Number(np.replay || 0);
+
+      const computedTotal = lyrics + delivery + production + originality + replay;
+      const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
+
+      setText("artistName", (np.artist_name || "—").toUpperCase());
+      setText("trackTitle", np.track_title ? `“${np.track_title}”` : "“—”");
+
+      setScore("scoreLyrics", lyrics);
+      setScore("scoreDelivery", delivery);
+      setScore("scoreProduction", production);
+      setScore("scoreOriginality", originality);
+      setScore("scoreRepeatability", replay);
+
+      const isFinal = !!np.final;
+      if (!isFinal){
+        setVerdict("", "—", "—");
+        return;
+      }
+
+      if (total >= QUALIFY_MIN){
+        setVerdict("qualified", "QUALIFIED", "ON THE BOARD");
+      }else{
+        setVerdict("rejected", "REJECTED", "OFF THE BOARD");
+      }
+    }catch(e){
+      if (DEBUG) console.warn("now_playing:", e);
     }
+  }
 
-    function setVerdict(state, text, tag){
-      const bar = $("verdictBar");
-      if (!bar) return;
-      bar.setAttribute("data-state", state || "");
-      setText("verdictText", text || "—");
-      setText("verdictTag", tag || "—");
+  async function fetchLeaderboard(){
+    try{
+      const data = await getJSON(`${API}/api/board`);
+      const items = (data.items || []).slice(0, 3);
+
+      const mb = $("miniBoard");
+      if (mb) mb.setAttribute("data-show", items.length ? "1" : "0");
+
+      const rows = [
+        { n:"lb1Name", s:"lb1Score" },
+        { n:"lb2Name", s:"lb2Score" },
+        { n:"lb3Name", s:"lb3Score" },
+      ];
+
+      for (let i=0; i<3; i++){
+        const it = items[i] || null;
+        setText(rows[i].n, it ? (it.artist_name || "—").toUpperCase() : "—");
+        setText(rows[i].s, it ? String(it.total ?? "—") : "—");
+      }
+    }catch(e){
+      if (DEBUG) console.warn("board:", e);
     }
+  }
 
-    // ===== API Pollers =====
-    async function fetchStatus(){
-      try{
-        const res = await fetch(`${API}/api/status`, { cache: "no-store" });
-        const data = await res.json();
-        const q = data.queue_count ?? "—";
-        setText("sessionPill", `Queue: ${q}`);
-      }catch(e){}
-    }
+  async function tick(){
+    // run in parallel so one slow endpoint doesn't stall the others
+    await Promise.allSettled([
+      fetchStatus(),
+      fetchNowPlaying(),
+      fetchLeaderboard()
+    ]);
+  }
 
-    async function fetchNowPlaying(){
-      try{
-        const res = await fetch(`${API}/api/now_playing`, { cache: "no-store" });
-        const data = await res.json();
-        const np = data.now_playing || null;
+  tick();
+  setInterval(tick, POLL_MS);
+</script>
 
-        if (!np){
-          setText("artistName","WAITING…");
-          setText("trackTitle","“—”");
-          setScore("scoreLyrics",0);
-          setScore("scoreDelivery",0);
-          setScore("scoreOriginality",0);
-          setScore("scoreRepeatability",0);
-          setScore("scoreProduction",0);
-          setVerdict("", "—", "—");
-          return;
-        }
-
-        const lyrics = Number(np.lyrics || 0);
-        const delivery = Number(np.delivery || 0);
-        const production = Number(np.production || 0);
-        const originality = Number(np.originality || 0);
-        const replay = Number(np.replay || 0);
-
-        // Your previous overlay computed total from 5 buckets (lyrics+delivery+production+originality+replay)
-        const computedTotal = lyrics + delivery + production + originality + replay;
-        const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
-
-        setText("artistName", (np.artist_name || "—").toUpperCase());
-        const t = np.track_title ? `“${np.track_title}”` : "“—”";
-        setText("trackTitle", t);
-
-        setScore("scoreLyrics", lyrics);
-        setScore("scoreDelivery", delivery);
-        setScore("scoreProduction", production);
-        setScore("scoreOriginality", originality);
-        setScore("scoreRepeatability", replay);
-
-        // Verdict behavior:
-        // - show ONLY when final == true (so you don't flash verdict during listening)
-        // - state: qualified if >= 30, rejected otherwise
-        const isFinal = !!np.final;
-        if (!isFinal){
-          setVerdict("", "—", "—");
-          return;
-        }
-
-        if (total >= QUALIFY_MIN){
-          setVerdict("qualified", "QUALIFIED", "ON THE BOARD");
-        }else{
-          setVerdict("rejected", "REJECTED", "OFF THE BOARD");
-        }
-
-      }catch(e){}
-    }
-
-    async function fetchLeaderboard(){
-      try{
-        const res = await fetch(`${API}/api/board`, { cache: "no-store" });
-        const data = await res.json();
-        const items = (data.items || []).slice(0, 3);
-
-        // show/hide mini board
-        const mb = $("miniBoard");
-        if (mb) mb.setAttribute("data-show", items.length ? "1" : "0");
-
-        const rows = [
-          { n:"lb1Name", s:"lb1Score" },
-          { n:"lb2Name", s:"lb2Score" },
-          { n:"lb3Name", s:"lb3Score" },
-        ];
-
-        for (let i=0; i<3; i++){
-          const it = items[i] || null;
-          setText(rows[i].n, it ? (it.artist_name || "—").toUpperCase() : "—");
-          setText(rows[i].s, it ? String(it.total ?? "—") : "—");
-        }
-      }catch(e){}
-    }
-
-    async function tick(){
-      await fetchStatus();
-      await fetchNowPlaying();
-      await fetchLeaderboard();
-    }
-
-    tick();
-    setInterval(tick, POLL_MS);
-  </script>
 </body>
 </html>
