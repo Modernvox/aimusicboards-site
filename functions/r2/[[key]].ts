@@ -29,11 +29,15 @@ export async function onRequest(context: { request: Request; env: Env; params: a
     if (err) return new Response("Unauthorized", { status: 401, headers: cors });
   }
 
-  // ✅ Support byte-range requests (required for audio duration/seek)
-  const range = request.headers.get("Range");
-  const obj = await env.AIMB_BUCKET.get(key, range ? { range } : undefined);
+  // ✅ Public media paths (site visitors must be able to play these)
+  const isPreview = key.startsWith("previews/");
+  const isUpload = key.startsWith("uploads/");
 
-  if (!obj) return new Response("Not found", { status: 404, headers: cors });
+  // Only non-public paths require admin
+  if (!isPreview && !isUpload) {
+    const err = requireAdmin(request, env);
+    if (err) return new Response("Unauthorized", { status: 401, headers: cors });
+  }
 
   const headers = new Headers(cors);
   obj.writeHttpMetadata(headers);
@@ -42,7 +46,7 @@ export async function onRequest(context: { request: Request; env: Env; params: a
   headers.set("Accept-Ranges", "bytes");
   headers.set("ETag", obj.httpEtag);
 
-  headers.set("Cache-Control", isPreview ? "public, max-age=3600" : "no-store");
+  headers.set("Cache-Control", (isPreview || isUpload) ? "public, max-age=3600" : "no-store");
 
   // If this was a range request, R2 returns partial content — respond 206
   if (range) {
