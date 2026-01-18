@@ -123,6 +123,10 @@
       box-shadow: 0 14px 38px rgba(0,0,0,.35);
     }
 
+     .btn.cta{
+      min-width: 240px;   /* ✅ makes it feel like the sample */
+    }
+
     .pill{
       display:inline-flex;
       align-items:center;
@@ -153,38 +157,32 @@
       box-shadow: 0 0 18px rgba(46,204,113,.45);
     }
 
-    /* ---------- HERO (NO IMAGES: GRADIENT ONLY) ---------- */
+    /* ---------- HERO (IMAGE BACKGROUND) ---------- */
     .hero{
       position: relative;
-      padding: 42px 0 40px;
+      padding: 54px 0 40px; /* spacing under sticky nav like sample */
       isolation: isolate;
+      min-height: 520px;    /* keeps hero tall enough on desktop */
     }
 
-    /* Full-bleed hero background (placeholders only) */
+    /* Full-bleed hero background image */
     .hero::before{
       content:"";
       position:absolute;
       inset: 0;
       z-index: -2;
-      background:
-        radial-gradient(1200px 700px at 50% 22%, rgba(109,92,255,.26), rgba(0,0,0,0) 60%),
-        radial-gradient(1100px 650px at 70% 40%, rgba(74,163,255,.20), rgba(0,0,0,0) 58%),
-        radial-gradient(900px 520px at 30% 55%, rgba(212,175,55,.10), rgba(0,0,0,0) 62%),
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,0) 55%);
-      opacity: .85;
+
+      /* ✅ PUT YOUR CLOUDFLARE IMAGE URL HERE */
+      background-image: url("https://imagedelivery.net/fYqzQPf1CS3qAF1vZpfSLw/39dc1675-a55f-4a03-5b8f-de464d774c00/public");
+      background-size: cover;
+      background-position: center top; /* matches sample composition */
+      background-repeat: no-repeat;
+
+      /* optional: slight boost */
+      filter: saturate(1.05) contrast(1.05);
+      transform: scale(1.02); /* avoids edge seams on some browsers */
     }
 
-    /* Dark vignette + bottom fade */
-    .hero::after{
-      content:"";
-      position:absolute;
-      inset: 0;
-      z-index: -1;
-      background:
-        radial-gradient(900px 540px at 50% 18%, rgba(0,0,0,.05), rgba(0,0,0,.55) 65%),
-        linear-gradient(to bottom, rgba(0,0,0,.10), rgba(7,7,12,.92));
-      pointer-events:none;
-    }
 
     /* Centered hero container (fix desktop centering) */
     .hero-inner{
@@ -244,7 +242,7 @@
     .headline{
       font-size: clamp(34px, 5.1vw, 66px);
       line-height: 1.02;
-      margin: 0 0 12px 0;
+      margin: 0 0 14px 0; /* ✅ */
       font-weight: 900;
       letter-spacing: -.8px;
       text-transform: uppercase;
@@ -252,7 +250,7 @@
     }
 
     .subhead{
-      margin: 0 auto 18px auto;
+      margin: 0 auto 22px auto; /* ✅ */
       font-size: clamp(15px, 1.8vw, 18px);
       color: rgba(255,255,255,.78);
       max-width: 760px;
@@ -262,7 +260,7 @@
     .hero-actions{
       display:flex;
       justify-content:center;
-      margin-bottom: 14px;
+      margin-bottom: 18px; /* ✅ */
     }
 
     .nowplaying{
@@ -670,6 +668,16 @@
       .screen-inner{ padding: 16px; }
       .tiles{ grid-template-columns: 1fr; }
     }
+
+    @media (max-width: 520px){
+      .hero{
+        min-height: 440px;
+      }
+      .hero::before{
+       background-position: 58% 20%; /* slight shift to keep subject visible */
+      }
+    }
+
   </style>
 </head>
 
