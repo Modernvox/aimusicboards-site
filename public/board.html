@@ -464,6 +464,44 @@
       color: rgba(255,255,255,.72);
       text-align: center;
     }
+/* ✅ NEW: sort toggle row in board header */
+.sortRow{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.22);
+  backdrop-filter: blur(8px);
+}
+
+/* make the sort buttons compact + pill-like */
+.sortRow .sortBtn{
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.86);
+  font-weight: 900;
+  letter-spacing: .4px;
+}
+
+/* active state */
+.sortRow .sortBtn.active{
+  background: linear-gradient(180deg, rgba(212,175,55,.92), rgba(212,175,55,.70));
+  color: #1a1406;
+  border-color: rgba(0,0,0,.22);
+}
+
+/* hover state */
+.sortRow .sortBtn:hover{
+  background: rgba(255,255,255,.10);
+}
+.sortRow .sortBtn.active:hover{
+  filter: brightness(1.02);
+}
 
     /* ---------- Responsive ---------- */
     @media (max-width: 980px){
@@ -497,7 +535,20 @@
             font-size: 11px;
             border-radius: 11px;
         }
+.board-actions{
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+  }
 
+  .sortRow{
+    order: 2;
+  }
+
+  .sortRow .sortBtn{
+    padding: 7px 10px;
+    font-size: 11px;
+  }
     }
   </style>
 </head>
@@ -517,7 +568,6 @@
 
         <div class="navright">
           <a class="btn primary" href="https://www.tiktok.com/@snapink.official" target="_blank" rel="noopener">Watch Live</a>
-          <a class="btn" href="#login">Log In</a>
         </div>
       </div>
     </div>
@@ -542,6 +592,13 @@
 
             <div class="board-actions">
               <div class="pill" id="lastUpdated">Updated: —</div>
+
+              <!-- ✅ NEW: Sort toggle (Judge vs Fan) -->
+              <div class="sortRow" role="group" aria-label="Sort leaderboard">
+                <button class="btn sortBtn active" id="sortJudge" type="button" data-sort="judge">Judge</button>
+                <button class="btn sortBtn" id="sortFan" type="button" data-sort="fan">Fan</button>
+              </div>
+
               <button class="btn refresh" id="refreshBtn" type="button">Refresh</button>
             </div>
           </div>
@@ -574,331 +631,410 @@
       </section>
     </div>
   </main>
-<!-- Fan Vote Modal -->
-<div id="voteModal" style="display:none; position:fixed; inset:0; z-index:9999;">
-  <div id="voteModalBackdrop" style="position:absolute; inset:0; background:rgba(0,0,0,.55);"></div>
 
-  <div style="position:relative; margin:12vh auto 0 auto; width:min(520px, calc(100% - 28px));
-              border:1px solid rgba(255,255,255,.14); border-radius:16px;
-              background:rgba(0,0,0,.78); backdrop-filter:blur(12px);
-              box-shadow:0 18px 50px rgba(0,0,0,.55); padding:16px 16px;">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-      <div style="font-weight:900; text-transform:uppercase; letter-spacing:.6px; color:rgba(255,255,255,.92);">
-        Thank you
+  <!-- Fan Vote Modal -->
+  <div id="voteModal" style="display:none; position:fixed; inset:0; z-index:9999;">
+    <div id="voteModalBackdrop" style="position:absolute; inset:0; background:rgba(0,0,0,.55);"></div>
+
+    <div style="position:relative; margin:12vh auto 0 auto; width:min(520px, calc(100% - 28px));
+                border:1px solid rgba(255,255,255,.14); border-radius:16px;
+                background:rgba(0,0,0,.78); backdrop-filter:blur(12px);
+                box-shadow:0 18px 50px rgba(0,0,0,.55); padding:16px 16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="font-weight:900; text-transform:uppercase; letter-spacing:.6px; color:rgba(255,255,255,.92);">
+          Thank you
+        </div>
+
+        <button id="voteModalClose" type="button"
+          style="border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06);
+                 color:rgba(255,255,255,.9); border-radius:10px; padding:8px 10px; font-weight:900; cursor:pointer;">
+          ✕
+        </button>
       </div>
 
-      <button id="voteModalClose" type="button"
-        style="border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06);
-               color:rgba(255,255,255,.9); border-radius:10px; padding:8px 10px; font-weight:900; cursor:pointer;">
-        ✕
-      </button>
-    </div>
+      <div style="margin-top:10px; color:rgba(255,255,255,.78); line-height:1.35;">
+        Your vote has been added.
+      </div>
 
-    <div style="margin-top:10px; color:rgba(255,255,255,.78); line-height:1.35;">
-      Your vote has been added.
-    </div>
-
-    <div style="margin-top:14px; display:flex; justify-content:flex-end;">
-      <button id="voteModalOk" type="button"
-        style="border:0; background:linear-gradient(180deg, rgba(212,175,55,.92), rgba(212,175,55,.72));
-               color:#1a1406; border-radius:12px; padding:10px 14px; font-weight:900; cursor:pointer;">
-        OK
-      </button>
+      <div style="margin-top:14px; display:flex; justify-content:flex-end;">
+        <button id="voteModalOk" type="button"
+          style="border:0; background:linear-gradient(180deg, rgba(212,175,55,.92), rgba(212,175,55,.72));
+                 color:#1a1406; border-radius:12px; padding:10px 14px; font-weight:900; cursor:pointer;">
+          OK
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
- <script>
-    const lastUpdatedEl = document.getElementById("lastUpdated");
-    const refreshBtn = document.getElementById("refreshBtn");
+<script>
+  const lastUpdatedEl = document.getElementById("lastUpdated");
+  const refreshBtn = document.getElementById("refreshBtn");
 
-    function fmtTime(d){
-        return d.toLocaleString(undefined, {
-            month: "short",
-            day: "2-digit",
-            hour: "numeric",
-            minute: "2-digit"
-        });
+  // Optional sort buttons (only if you add them in HTML)
+  // <button id="sortJudgeBtn" class="btn sortBtn active" type="button">Judge</button>
+  // <button id="sortFanBtn" class="btn sortBtn" type="button">Fans</button>
+  const sortJudgeBtn = document.getElementById("sortJudgeBtn");
+  const sortFanBtn = document.getElementById("sortFanBtn");
+
+  let sortMode = "judge"; // "judge" | "fan"
+
+  function fmtTime(d){
+    return d.toLocaleString(undefined, {
+      month: "short",
+      day: "2-digit",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "").replace(/[&<>"']/g, m => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#039;"
+    }[m]));
+  }
+
+  function safeNumber(n, fallback="—"){
+    const x = Number(n);
+    return Number.isFinite(x) ? String(x) : fallback;
+  }
+
+  function safeNum(n, fallback=0){
+    const x = Number(n);
+    return Number.isFinite(x) ? x : fallback;
+  }
+
+  // ---------------- Fan voting helpers ----------------
+  function openVoteModal(){
+    const m = document.getElementById("voteModal");
+    if (m) m.style.display = "block";
+  }
+  function closeVoteModal(){
+    const m = document.getElementById("voteModal");
+    if (m) m.style.display = "none";
+  }
+
+  function renderFanInline(el, avg, count){
+    if (!el) return;
+    const a = Number(avg || 0);
+    const c = Number(count || 0);
+
+    if (c <= 0) {
+      el.innerHTML = `Fan Rating: <b>—</b> (0 votes)`;
+      return;
     }
 
-    function escapeHtml(s){
-        return String(s ?? "").replace(/[&<>"']/g, m => ({
-            "&":"&amp;",
-            "<":"&lt;",
-            ">":"&gt;",
-            '"':"&quot;",
-            "'":"&#039;"
-        }[m]));
+    el.innerHTML = `Fan Rating: <b>⭐ ${a.toFixed(2)}</b> (${c} ${c === 1 ? "vote" : "votes"})`;
+  }
+
+  function updateInlineFanLabels(submissionId, avg, count){
+    if (!submissionId) return;
+    document
+      .querySelectorAll(
+        `[data-fan-inline="1"][data-submission-id="${CSS.escape(submissionId)}"]`
+      )
+      .forEach(el => renderFanInline(el, avg, count));
+  }
+
+  (function bindVoteModal(){
+    const closeBtn = document.getElementById("voteModalClose");
+    const okBtn = document.getElementById("voteModalOk");
+    const backdrop = document.getElementById("voteModalBackdrop");
+    closeBtn?.addEventListener("click", closeVoteModal);
+    okBtn?.addEventListener("click", closeVoteModal);
+    backdrop?.addEventListener("click", closeVoteModal);
+  })();
+
+  async function fetchVoteStats(submissionId){
+    const r = await fetch(`/api/vote_stats?submission_id=${encodeURIComponent(submissionId)}`, { cache:"no-store" });
+    return await r.json();
+  }
+
+  async function postVote(submissionId, rating){
+    const r = await fetch("/api/vote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ submission_id: submissionId, rating })
+    });
+    const j = await r.json().catch(() => ({}));
+    return { ok: r.ok && j.ok, status: r.status, body: j };
+  }
+
+  async function buildFanVoteBox(submissionId){
+    const box = document.createElement("div");
+    box.className = "fanVoteBox";
+    box.innerHTML = `
+      <div class="fanRow">
+        <div class="fanMeta">
+          Fan: <b class="fanAvg">—</b> (<span class="fanCount">—</span>)
+        </div>
+
+        <div class="fanControls">
+          <input class="fanSlider" type="range" min="1" max="10" step="1" value="8" aria-label="Fan vote slider" />
+          <div class="fanValue">8</div>
+          <button class="fanBtn" type="button">Vote</button>
+        </div>
+      </div>
+      <div class="fanMeta fanHint" style="margin-top:8px; color:rgba(255,255,255,.70);"></div>
+    `;
+
+    const avgEl = box.querySelector(".fanAvg");
+    const countEl = box.querySelector(".fanCount");
+    const hintEl = box.querySelector(".fanHint");
+    const slider = box.querySelector(".fanSlider");
+    const valueEl = box.querySelector(".fanValue");
+    const btn = box.querySelector(".fanBtn");
+
+    function setMeta(avg, count){
+      const a = Number(avg || 0);
+      const c = Number(count || 0);
+
+      if (avgEl) avgEl.textContent = (Number.isFinite(a) && a > 0) ? a.toFixed(2) : "—";
+      if (countEl) countEl.textContent = String(Number.isFinite(c) ? c : "—");
+
+      // ✅ keep inline labels in sync too
+      updateInlineFanLabels(submissionId, a, c);
     }
 
-    function safeNumber(n, fallback="—"){
-        const x = Number(n);
-        return Number.isFinite(x) ? String(x) : fallback;
+    slider?.addEventListener("input", () => {
+      if (valueEl) valueEl.textContent = String(slider.value);
+    });
+
+    // load stats
+    try{
+      const st = await fetchVoteStats(submissionId);
+      const a = Number(st.avg_rating || 0);
+      const c = Number(st.vote_count || 0);
+
+      setMeta(a, c);
+
+      if (st.your_vote != null){
+        if (hintEl) hintEl.textContent = `You already voted: ${st.your_vote}/10`;
+        if (btn) btn.disabled = true;
+        if (slider) slider.disabled = true;
+        if (valueEl) valueEl.textContent = String(st.your_vote);
+        if (slider) slider.value = String(st.your_vote);
+      } else {
+        if (hintEl) hintEl.textContent = "Vote once (1 = horrible, 10 = phenomenal).";
+      }
+    } catch {
+      if (hintEl) hintEl.textContent = "Voting temporarily unavailable.";
+      if (btn) btn.disabled = true;
+      if (slider) slider.disabled = true;
     }
 
-    // ---------------- Fan voting helpers ----------------
-    function openVoteModal(){
-        const m = document.getElementById("voteModal");
-        if (m) m.style.display = "block";
-    }
-    function closeVoteModal(){
-        const m = document.getElementById("voteModal");
-        if (m) m.style.display = "none";
-    }
+    btn?.addEventListener("click", async () => {
+      if (!slider || !btn) return;
 
-    function renderFanInline(el, avg, count){
-        if (!el) return;
-        const a = Number(avg || 0);
-        const c = Number(count || 0);
+      const rating = Number(slider.value);
+      btn.disabled = true;
 
-        if (c <= 0) {
-            el.innerHTML = `Fan Rating: <b>—</b> (0 votes)`;
-            return;
+      try{
+        const res = await postVote(submissionId, rating);
+
+        if (!res.ok){
+          const err = res.body?.error || "vote_failed";
+          if (hintEl) {
+            if (err === "already_voted" || err === "already_voted_ip") hintEl.textContent = "You already voted for this song.";
+            else if (err === "not_eligible") hintEl.textContent = "Voting is only for leaderboard songs.";
+            else hintEl.textContent = "Could not submit vote. Please try again.";
+          }
+          btn.disabled = false;
+          return;
         }
 
-        el.innerHTML = `Fan Rating: <b>⭐ ${a.toFixed(2)}</b> (${c} ${c === 1 ? "vote" : "votes"})`;
-    }
+        // update UI (and inline)
+        const avg = Number(res.body.avg_rating || 0);
+        const count = Number(res.body.vote_count || 0);
+        setMeta(avg, count);
 
-    function updateInlineFanLabels(submissionId, avg, count){
-        if (!submissionId) return;
-        document
-            .querySelectorAll(
-                `[data-fan-inline="1"][data-submission-id="${CSS.escape(submissionId)}"]`
-            )
-            .forEach(el => renderFanInline(el, avg, count));
-    }
+        if (hintEl) hintEl.textContent = `Vote recorded: ${rating}/10`;
+        if (slider) slider.disabled = true;
 
-    (function bindVoteModal(){
-        const closeBtn = document.getElementById("voteModalClose");
-        const okBtn = document.getElementById("voteModalOk");
-        const backdrop = document.getElementById("voteModalBackdrop");
-        closeBtn?.addEventListener("click", closeVoteModal);
-        okBtn?.addEventListener("click", closeVoteModal);
-        backdrop?.addEventListener("click", closeVoteModal);
-    })();
-
-    async function fetchVoteStats(submissionId){
-        const r = await fetch(`/api/vote_stats?submission_id=${encodeURIComponent(submissionId)}`, { cache:"no-store" });
-        return await r.json();
-    }
-
-    async function postVote(submissionId, rating){
-        const r = await fetch("/api/vote", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ submission_id: submissionId, rating })
-        });
-        const j = await r.json().catch(() => ({}));
-        return { ok: r.ok && j.ok, status: r.status, body: j };
-    }
-
-    async function buildFanVoteBox(submissionId){
-        const box = document.createElement("div");
-        box.className = "fanVoteBox";
-        box.innerHTML = `
-            <div class="fanRow">
-                <div class="fanMeta">
-                    Fan: <b class="fanAvg">—</b> (<span class="fanCount">—</span>)
-                </div>
-
-                <div class="fanControls">
-                    <input class="fanSlider" type="range" min="1" max="10" step="1" value="8" aria-label="Fan vote slider" />
-                    <div class="fanValue">8</div>
-                    <button class="fanBtn" type="button">Vote</button>
-                </div>
-            </div>
-            <div class="fanMeta fanHint" style="margin-top:8px; color:rgba(255,255,255,.70);"></div>
-        `;
-
-        const avgEl = box.querySelector(".fanAvg");
-        const countEl = box.querySelector(".fanCount");
-        const hintEl = box.querySelector(".fanHint");
-        const slider = box.querySelector(".fanSlider");
-        const valueEl = box.querySelector(".fanValue");
-        const btn = box.querySelector(".fanBtn");
-
-        function setMeta(avg, count){
-            const a = Number(avg || 0);
-            const c = Number(count || 0);
-
-            if (avgEl) avgEl.textContent = (Number.isFinite(a) && a > 0) ? a.toFixed(2) : "—";
-            if (countEl) countEl.textContent = String(Number.isFinite(c) ? c : "—");
-
-            // ✅ keep the inline labels in sync too
-            updateInlineFanLabels(submissionId, a, c);
+        // ✅ If user is sorting by fan, re-render list so rank order updates immediately
+        if (sortMode === "fan") {
+          try { await load(); } catch {}
         }
 
-        slider?.addEventListener("input", () => {
-            if (valueEl) valueEl.textContent = String(slider.value);
-        });
+        openVoteModal();
+      } catch {
+        if (hintEl) hintEl.textContent = "Could not submit vote. Please try again.";
+        btn.disabled = false;
+      }
+    });
 
-        // load stats
-        try{
-            const st = await fetchVoteStats(submissionId);
-            const a = Number(st.avg_rating || 0);
-            const c = Number(st.vote_count || 0);
+    return box;
+  }
 
-            setMeta(a, c);
+  // ---------------- Sorting ----------------
+  function setSortMode(mode){
+    sortMode = (mode === "fan") ? "fan" : "judge";
 
-            if (st.your_vote != null){
-                if (hintEl) hintEl.textContent = `You already voted: ${st.your_vote}/10`;
-                if (btn) btn.disabled = true;
-                if (slider) slider.disabled = true;
-                if (valueEl) valueEl.textContent = String(st.your_vote);
-                if (slider) slider.value = String(st.your_vote);
-            } else {
-                if (hintEl) hintEl.textContent = "Vote once (1 = horrible, 10 = phenomenal).";
-            }
-        } catch {
-            if (hintEl) hintEl.textContent = "Voting temporarily unavailable.";
-            if (btn) btn.disabled = true;
-            if (slider) slider.disabled = true;
-        }
+    if (sortJudgeBtn && sortFanBtn){
+      sortJudgeBtn.classList.toggle("active", sortMode === "judge");
+      sortFanBtn.classList.toggle("active", sortMode === "fan");
+    }
+  }
 
-        btn?.addEventListener("click", async () => {
-            if (!slider || !btn) return;
+  sortJudgeBtn?.addEventListener("click", () => { setSortMode("judge"); load(); });
+  sortFanBtn?.addEventListener("click", () => { setSortMode("fan"); load(); });
 
-            const rating = Number(slider.value);
-            btn.disabled = true;
+  // ---------------- Main load ----------------
+  async function load(){
+    // immediate UI feedback
+    lastUpdatedEl.textContent = "Updated: …";
 
-            try{
-                const res = await postVote(submissionId, rating);
-
-                if (!res.ok){
-                    const err = res.body?.error || "vote_failed";
-                    if (hintEl) {
-                        if (err === "already_voted" || err === "already_voted_ip") hintEl.textContent = "You already voted for this song.";
-                        else if (err === "not_eligible") hintEl.textContent = "Voting is only for leaderboard songs.";
-                        else hintEl.textContent = "Could not submit vote. Please try again.";
-                    }
-                    btn.disabled = false;
-                    return;
-                }
-
-                // update UI (and inline)
-                const avg = Number(res.body.avg_rating || 0);
-                const count = Number(res.body.vote_count || 0);
-                setMeta(avg, count);
-
-                if (hintEl) hintEl.textContent = `Vote recorded: ${rating}/10`;
-                if (slider) slider.disabled = true;
-
-                openVoteModal();
-            } catch {
-                if (hintEl) hintEl.textContent = "Could not submit vote. Please try again.";
-                btn.disabled = false;
-            }
-        });
-
-        return box;
+    let j;
+    try{
+      const r = await fetch("/api/board", { cache: "no-store" });
+      j = await r.json();
+      lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
+    }catch(e){
+      lastUpdatedEl.textContent = "Updated: —";
+      const rows = document.getElementById("rows");
+      const cards = document.getElementById("cards");
+      rows.innerHTML = `<tr><td colspan="5" class="muted">Unable to load right now. Please refresh.</td></tr>`;
+      cards.innerHTML = `<div class="empty">Unable to load right now. Please refresh.</div>`;
+      return;
     }
 
-    // ---------------- Main load ----------------
-    async function load(){
-        // immediate UI feedback
-        lastUpdatedEl.textContent = "Updated: …";
+    const rows = document.getElementById("rows");
+    const cards = document.getElementById("cards");
+    rows.innerHTML = "";
+    cards.innerHTML = "";
 
-        let j;
-        try{
-            const r = await fetch("/api/board", { cache: "no-store" });
-            j = await r.json();
-            lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
-        }catch(e){
-            lastUpdatedEl.textContent = "Updated: —";
-            const rows = document.getElementById("rows");
-            const cards = document.getElementById("cards");
-            rows.innerHTML = `<tr><td colspan="5" class="muted">Unable to load right now. Please refresh.</td></tr>`;
-            cards.innerHTML = `<div class="empty">Unable to load right now. Please refresh.</div>`;
-            return;
-        }
+    let items = Array.isArray(j?.items) ? j.items : [];
 
-        const rows = document.getElementById("rows");
-        const cards = document.getElementById("cards");
-        rows.innerHTML = "";
-        cards.innerHTML = "";
-
-        const items = Array.isArray(j?.items) ? j.items : [];
-
-        if (items.length === 0){
-            rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
-            cards.innerHTML = `<div class="empty">No approved tracks yet.</div>`;
-            return;
-        }
-
-        for (let idx = 0; idx < items.length; idx++){
-            const it = items[idx];
-            const rank = idx + 1;
-
-            const submissionId = String(it.submission_id || "").trim();
-            const artist = escapeHtml(it.artist_name);
-            const track = escapeHtml(it.track_title);
-            const total = safeNumber(it.total);
-            const url = String(it.track_url ?? "");
-
-            // Desktop main row
-            const tr = document.createElement("tr");
-            tr.className = rank === 1 ? "rank-1" : (rank === 2 ? "rank-2" : (rank === 3 ? "rank-3" : ""));
-            tr.innerHTML = `
-                <td><strong>#${rank}</strong></td>
-                <td>${artist || "—"}</td>
-                <td>
-                    ${track || "—"}
-                    <div class="fanInline" data-fan-inline="1" data-submission-id="${escapeHtml(submissionId)}">
-                        Fan Rating: <b>—</b> (0 votes)
-                    </div>
-                </td>
-                <td><strong>${total}</strong></td>
-                <td>${url ? `<a class="listen" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
-            `;
-            rows.appendChild(tr);
-
-            // Desktop vote row (full-width)
-            const tr2 = document.createElement("tr");
-            tr2.innerHTML = `<td class="fanTd" colspan="5"></td>`;
-            rows.appendChild(tr2);
-
-            if (submissionId){
-                const voteBox = await buildFanVoteBox(submissionId);
-                tr2.querySelector("td")?.appendChild(voteBox);
-            } else {
-                tr2.querySelector("td").innerHTML = `<div class="muted">Voting unavailable (missing submission_id).</div>`;
-            }
-
-            // Mobile card
-            const div = document.createElement("div");
-            div.className = "item" + (rank === 1 ? " top1" : "");
-            div.innerHTML = `
-                <div class="rankBox">#${rank}</div>
-                <div class="meta2">
-                    <div class="artist">${artist || "—"}</div>
-                    <div class="track">${track || "—"}</div>
-
-                    <div class="fanInline" data-fan-inline="1" data-submission-id="${escapeHtml(submissionId)}">
-                        Fan Rating: <b>—</b> (0 votes)
-                    </div>
-
-                    <div class="row2">
-                        <div class="scorePill">Total: <b>${total}</b></div>
-                        ${url ? `<a class="btn" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="btn" style="opacity:.5;cursor:default;">No Link</span>`}
-                    </div>
-
-                    <div class="fanMount" style="margin-top:10px;"></div>
-                </div>
-            `;
-            cards.appendChild(div);
-
-            const mount = div.querySelector(".fanMount");
-            if (mount && submissionId){
-                const voteBox2 = await buildFanVoteBox(submissionId);
-                mount.appendChild(voteBox2);
-            }
-        }
+    if (items.length === 0){
+      rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
+      cards.innerHTML = `<div class="empty">No approved tracks yet.</div>`;
+      return;
     }
 
-    refreshBtn.addEventListener("click", load);
-    load();
-    setInterval(load, 30000);
+    // ✅ If /api/board already includes fan_avg/fan_votes, sort client-side easily.
+    // If not, it will fall back to judge order.
+    if (sortMode === "fan"){
+      items = items.slice().sort((a, b) => {
+        const aAvg = safeNum(a.fan_avg, 0);
+        const bAvg = safeNum(b.fan_avg, 0);
+        const aVotes = safeNum(a.fan_votes, 0);
+        const bVotes = safeNum(b.fan_votes, 0);
+
+        // primary: higher avg
+        if (bAvg !== aAvg) return bAvg - aAvg;
+
+        // secondary: more votes
+        if (bVotes !== aVotes) return bVotes - aVotes;
+
+        // tertiary: higher judge total (keeps quality)
+        const aTotal = safeNum(a.total ?? a.judge_total, 0);
+        const bTotal = safeNum(b.total ?? b.judge_total, 0);
+        if (bTotal !== aTotal) return bTotal - aTotal;
+
+        return 0;
+      });
+    } else {
+      // judge mode: if your API returns judge_total, use it for display sort,
+      // otherwise keep backend order.
+      // (No-op; items already ordered by judge score server-side.)
+    }
+
+    for (let idx = 0; idx < items.length; idx++){
+      const it = items[idx];
+      const rank = idx + 1;
+
+      const submissionId = String(it.submission_id || "").trim();
+      const artist = escapeHtml(it.artist_name);
+      const track = escapeHtml(it.track_title);
+      const total = safeNumber(it.total ?? it.judge_total);
+      const url = String(it.track_url ?? "");
+
+      // Inline fan (prefer board-provided values; otherwise it will fill via vote_stats when voteBox loads)
+      const fanAvgInline = safeNum(it.fan_avg, 0);
+      const fanVotesInline = safeNum(it.fan_votes, 0);
+
+      // Desktop main row
+      const tr = document.createElement("tr");
+      tr.className = rank === 1 ? "rank-1" : (rank === 2 ? "rank-2" : (rank === 3 ? "rank-3" : ""));
+      tr.innerHTML = `
+        <td><strong>#${rank}</strong></td>
+        <td>${artist || "—"}</td>
+        <td>
+          ${track || "—"}
+          <div class="fanInline" data-fan-inline="1" data-submission-id="${escapeHtml(submissionId)}">
+            Fan Rating: <b>—</b> (0 votes)
+          </div>
+        </td>
+        <td><strong>${total}</strong></td>
+        <td>${url ? `<a class="listen" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
+      `;
+      rows.appendChild(tr);
+
+      // Set inline immediately if we have values from /api/board
+      if (submissionId && fanVotesInline >= 0){
+        updateInlineFanLabels(submissionId, fanAvgInline, fanVotesInline);
+      }
+
+      // Desktop vote row (full-width)
+      const tr2 = document.createElement("tr");
+      tr2.innerHTML = `<td class="fanTd" colspan="5"></td>`;
+      rows.appendChild(tr2);
+
+      if (submissionId){
+        const voteBox = await buildFanVoteBox(submissionId);
+        tr2.querySelector("td")?.appendChild(voteBox);
+      } else {
+        tr2.querySelector("td").innerHTML = `<div class="muted">Voting unavailable (missing submission_id).</div>`;
+      }
+
+      // Mobile card
+      const div = document.createElement("div");
+      div.className = "item" + (rank === 1 ? " top1" : "");
+      div.innerHTML = `
+        <div class="rankBox">#${rank}</div>
+        <div class="meta2">
+          <div class="artist">${artist || "—"}</div>
+          <div class="track">${track || "—"}</div>
+
+          <div class="fanInline" data-fan-inline="1" data-submission-id="${escapeHtml(submissionId)}">
+            Fan Rating: <b>—</b> (0 votes)
+          </div>
+
+          <div class="row2">
+            <div class="scorePill">Total: <b>${total}</b></div>
+            ${url ? `<a class="btn" href="${url}" target="_blank" rel="noopener">Play</a>` : `<span class="btn" style="opacity:.5;cursor:default;">No Link</span>`}
+          </div>
+
+          <div class="fanMount" style="margin-top:10px;"></div>
+        </div>
+      `;
+      cards.appendChild(div);
+
+      // Inline on mobile too (same selector hits both)
+      if (submissionId && fanVotesInline >= 0){
+        updateInlineFanLabels(submissionId, fanAvgInline, fanVotesInline);
+      }
+
+      const mount = div.querySelector(".fanMount");
+      if (mount && submissionId){
+        const voteBox2 = await buildFanVoteBox(submissionId);
+        mount.appendChild(voteBox2);
+      }
+    }
+  }
+
+  refreshBtn.addEventListener("click", load);
+
+  // default state (judge)
+  setSortMode("judge");
+
+  load();
+  setInterval(load, 30000);
 </script>
+
 
 
 </body>
