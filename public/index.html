@@ -30,13 +30,8 @@
       --radius: 18px;
       --shadow: 0 18px 50px rgba(0,0,0,.45);
 
-      /* Content width like the screenshot */
+      /* Content width like screenshot */
       --max: 1180px;
-
-      /* HERO full-bleed background image (replace with your real hero background if you have one) */
-      --hero-bg: url("https://imagedelivery.net/fYqzQPf1CS3qAF1vZpfSLw/fe3c6d7d-db0f-4736-2eeb-baac5d2d2000/public");
-      /* ^ If this is your host image, keep it; otherwise swap --hero-bg to your bokeh/arena background.
-         The layout will still be correct either way. */
     }
 
     *{ box-sizing: border-box; }
@@ -48,7 +43,6 @@
       color: var(--text);
       overflow-x:hidden;
     }
-
     a{ color: inherit; text-decoration: none; }
 
     /* Content wrapper */
@@ -124,7 +118,7 @@
       background: linear-gradient(180deg, var(--cta2), var(--cta));
       border-color: rgba(0,0,0,.2);
       color: #1a0f05;
-      padding: 14px 22px; /* closer to screenshot */
+      padding: 14px 22px;
       border-radius: 10px;
       box-shadow: 0 14px 38px rgba(0,0,0,.35);
     }
@@ -159,31 +153,28 @@
       box-shadow: 0 0 18px rgba(46,204,113,.45);
     }
 
-    /* ---------- HERO (FULL-WIDTH BACKGROUND LIKE SCREENSHOT) ---------- */
+    /* ---------- HERO (NO IMAGES: GRADIENT ONLY) ---------- */
     .hero{
       position: relative;
       padding: 42px 0 40px;
       isolation: isolate;
     }
 
-    /* Full-bleed hero background */
+    /* Full-bleed hero background (placeholders only) */
     .hero::before{
       content:"";
       position:absolute;
       inset: 0;
       z-index: -2;
       background:
-        radial-gradient(1200px 700px at 50% 22%, rgba(109,92,255,.24), rgba(0,0,0,0) 60%),
-        radial-gradient(1100px 650px at 70% 40%, rgba(74,163,255,.18), rgba(0,0,0,0) 58%),
-        /* Replace with your arena/bokeh image for 1:1 match */
-        var(--hero-bg);
-      background-size: cover;
-      background-position: center;
-      filter: saturate(1.05) contrast(1.03);
-      opacity: .42; /* let the stars/bokeh feel come through without killing text */
+        radial-gradient(1200px 700px at 50% 22%, rgba(109,92,255,.26), rgba(0,0,0,0) 60%),
+        radial-gradient(1100px 650px at 70% 40%, rgba(74,163,255,.20), rgba(0,0,0,0) 58%),
+        radial-gradient(900px 520px at 30% 55%, rgba(212,175,55,.10), rgba(0,0,0,0) 62%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,0) 55%);
+      opacity: .85;
     }
 
-    /* Dark vignette + bottom fade like screenshot */
+    /* Dark vignette + bottom fade */
     .hero::after{
       content:"";
       position:absolute;
@@ -195,34 +186,50 @@
       pointer-events:none;
     }
 
-    /* Hero layout: host is a cutout on left, text centered */
+    /* Centered hero container (fix desktop centering) */
     .hero-inner{
       position: relative;
       display:grid;
       grid-template-columns: 280px 1fr;
       gap: 28px;
       align-items: center;
+      max-width: 1040px;          /* keeps hero content centered like mobile */
+      margin: 0 auto;             /* centers within .wrap */
       padding-top: 10px;
     }
 
-    /* Host cutout (NO card frame; matches screenshot vibe) */
+    /* Placeholder “host” block (no images) */
     .host{
       width: 100%;
       height: 340px;
-      background-image: url("https://imagedelivery.net/fYqzQPf1CS3qAF1vZpfSLw/fe3c6d7d-db0f-4736-2eeb-baac5d2d2000/public");
-      background-repeat: no-repeat;
-      background-size: contain;
-      background-position: left center;
-      filter: drop-shadow(0 18px 38px rgba(0,0,0,.55));
-      border: none;
-      border-radius: 0;
-      box-shadow: none;
-      opacity: .98;
+      border-radius: 18px;
+      border: 1px dashed rgba(255,255,255,.18);
+      background:
+        radial-gradient(320px 220px at 50% 35%, rgba(255,255,255,.10), rgba(0,0,0,0) 65%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      box-shadow: 0 18px 38px rgba(0,0,0,.45);
+      position: relative;
+      overflow: hidden;
+    }
+    .host::after{
+      content:"HOST PLACEHOLDER";
+      position:absolute;
+      inset: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.55);
+      font-size: 12px;
     }
 
     .hero-copy{
       padding: 8px 0;
-      text-align: center; /* key difference vs your previous left-aligned */
+      text-align: center;
+      justify-self: center; /* keeps center on desktop */
+      width: 100%;
     }
 
     .hero-toprow{
@@ -259,8 +266,7 @@
     }
 
     .nowplaying{
-      margin: 0 auto;
-      margin-top: 10px;
+      margin: 10px auto 0 auto;
       padding: 14px 16px;
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,.12);
@@ -290,7 +296,7 @@
       color: rgba(255,255,255,.70);
     }
 
-    /* ---------- Leaderboard Screen (match screenshot: big, centered, neon bars feel) ---------- */
+    /* ---------- Leaderboard Screen ---------- */
     .screen{
       position: relative;
       margin-top: 28px;
@@ -342,7 +348,6 @@
       font-weight: 700;
     }
 
-    /* Podium (kept for your script; visually closer to screenshot bars) */
     .podium{
       display:grid;
       grid-template-columns: 1fr;
@@ -381,7 +386,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .pod .meta{ display:none; } /* screenshot bars don’t show extra meta */
+    .pod .meta{ display:none; }
     .pod .score{
       font-weight: 900;
       font-size: 22px;
@@ -393,11 +398,9 @@
       background:
         linear-gradient(90deg, rgba(212,175,55,.22), rgba(0,0,0,.30) 55%);
     }
-    /* #2 and #3 subtle accents */
     #top2{ background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(0,0,0,.30) 55%); }
     #top3{ background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(0,0,0,.30) 55%); }
 
-    /* Desktop table (kept) */
     .tablewrap{
       border-radius: 18px;
       border: 1px solid rgba(255,255,255,.12);
@@ -433,47 +436,7 @@
     tbody tr.rank-3{ background: rgba(74,163,255,.06); }
     tbody td strong{ color: rgba(255,255,255,.95); }
 
-    /* Mobile list */
     .mobileOnly{ display:none; }
-    .entry{
-      display:grid;
-      grid-template-columns: 58px 1fr 90px;
-      gap: 10px;
-      padding: 12px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      align-items:center;
-    }
-    .entry:last-child{ border-bottom: none; }
-    .entry .r{
-      font-weight: 900;
-      color: rgba(255,255,255,.75);
-      letter-spacing: .3px;
-    }
-    .entry .title{
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .2px;
-      color: rgba(255,255,255,.92);
-      font-size: 13px;
-      line-height: 1.15;
-    }
-    .entry .sub{
-      margin-top: 4px;
-      font-size: 12px;
-      color: rgba(255,255,255,.68);
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-    }
-    .entry .score{
-      text-align:right;
-      font-weight: 900;
-      color: rgba(255,255,255,.92);
-    }
-    .entry.gold{ background: rgba(212,175,55,.10); }
-    .entry.green{ background: rgba(46,204,113,.06); }
-    .entry.blue{ background: rgba(74,163,255,.06); }
-
     .ruleline{
       margin-top: 12px;
       text-align:center;
@@ -559,26 +522,42 @@
       margin-bottom: 12px;
     }
     .livepill .dot{ background: var(--red); box-shadow: 0 0 16px rgba(255,59,48,.55); }
+
+    /* Placeholder thumb (no images) */
     .thumb{
       width: 100%;
       aspect-ratio: 16/9;
       border-radius: 14px;
       background:
-        linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.45)),
-        url("YOUR_LIVE_THUMB.jpg");
-      background-size: cover;
-      background-position: center;
-      border: 1px solid rgba(255,255,255,.12);
+        radial-gradient(520px 220px at 40% 30%, rgba(255,255,255,.10), rgba(0,0,0,0) 65%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border: 1px dashed rgba(255,255,255,.18);
       box-shadow: 0 10px 28px rgba(0,0,0,.35);
       margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
     }
+    .thumb::after{
+      content:"LIVE THUMB PLACEHOLDER";
+      position:absolute;
+      inset: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.55);
+      font-size: 12px;
+    }
+
     .liveartist{
       font-weight: 800;
       color: rgba(255,255,255,.90);
       margin: 0 0 12px 0;
     }
 
-    /* ---------- Highlights ---------- */
+    /* ---------- Highlights (NO IMAGES) ---------- */
     .section{
       margin-top: 26px;
       padding-bottom: 56px;
@@ -605,11 +584,24 @@
     }
     .tile .img{
       height: 110px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
       background:
-        linear-gradient(180deg, rgba(0,0,0,.00), rgba(0,0,0,.55)),
-        url("YOUR_HIGHLIGHT_1.jpg");
-      background-size: cover;
-      background-position: center;
+        radial-gradient(420px 140px at 40% 35%, rgba(255,255,255,.10), rgba(0,0,0,0) 70%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      position: relative;
+    }
+    .tile .img::after{
+      content:"HIGHLIGHT PLACEHOLDER";
+      position:absolute;
+      inset: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.50);
+      font-size: 11px;
     }
     .tile .meta{
       padding: 10px 12px 12px;
@@ -647,14 +639,12 @@
         grid-template-columns: 1fr;
         gap: 16px;
         justify-items: center;
+        max-width: 760px; /* keep centered */
       }
       .host{
         height: 220px;
         width: min(520px, 100%);
-        background-position: center;
       }
-      .hero-copy{ text-align:center; }
-      .hero-toprow{ justify-content:center; }
 
       .grid2{ grid-template-columns: 1fr; }
       .tiles{ grid-template-columns: repeat(2, 1fr); }
@@ -664,7 +654,6 @@
       .tablewrap{ display:none; }
       .mobileOnly{ display:block; }
 
-      /* Keep leaderboard bars readable */
       .pod{ grid-template-columns: 52px 1fr 92px; }
       .pod .track{ font-size: 14px; }
       .pod .score{ font-size: 18px; }
@@ -709,8 +698,8 @@
   <main id="home" class="hero">
     <div class="wrap">
       <div class="hero-inner">
-        <!-- Replace with a transparent PNG cutout of Mike -->
-        <div class="host" aria-label="Host image"></div>
+        <!-- No images: placeholder block -->
+        <div class="host" aria-label="Host placeholder"></div>
 
         <div class="hero-copy">
           <div class="hero-toprow">
@@ -850,7 +839,7 @@
           <h3>Live Now</h3>
           <div class="livebox">
             <div class="livepill"><span class="dot"></span> Live Now</div>
-            <div class="thumb" aria-label="Live thumbnail"></div>
+            <div class="thumb" aria-label="Live thumbnail placeholder"></div>
             <p class="liveartist">Now Playing updates above</p>
             <a class="btn primary" href="https://www.tiktok.com/@snapink.official" target="_blank" rel="noopener">Watch Live</a>
           </div>
@@ -863,9 +852,7 @@
 
         <div class="tiles">
           <div class="tile">
-            <div class="img" style="background-image:
-              linear-gradient(180deg, rgba(0,0,0,.00), rgba(0,0,0,.55)),
-              url('YOUR_HIGHLIGHT_1.jpg');"></div>
+            <div class="img"></div>
             <div class="meta">
               <div class="tname">Synthenusia</div>
               <div class="tscore"><b>7.5</b></div>
@@ -873,9 +860,7 @@
           </div>
 
           <div class="tile">
-            <div class="img" style="background-image:
-              linear-gradient(180deg, rgba(0,0,0,.00), rgba(0,0,0,.55)),
-              url('YOUR_HIGHLIGHT_2.jpg');"></div>
+            <div class="img"></div>
             <div class="meta">
               <div class="tname">Melody Machine</div>
               <div class="tscore"><b>9.1</b></div>
@@ -883,9 +868,7 @@
           </div>
 
           <div class="tile">
-            <div class="img" style="background-image:
-              linear-gradient(180deg, rgba(0,0,0,.00), rgba(0,0,0,.55)),
-              url('YOUR_HIGHLIGHT_3.jpg');"></div>
+            <div class="img"></div>
             <div class="meta">
               <div class="tname">Beat Bot</div>
               <div class="tscore"><b>6.3</b></div>
@@ -893,9 +876,7 @@
           </div>
 
           <div class="tile">
-            <div class="img" style="background-image:
-              linear-gradient(180deg, rgba(0,0,0,.00), rgba(0,0,0,.55)),
-              url('YOUR_HIGHLIGHT_4.jpg');"></div>
+            <div class="img"></div>
             <div class="meta">
               <div class="tname">Rhythmral</div>
               <div class="tscore"><b>7.0</b></div>
@@ -909,6 +890,7 @@
       </section>
     </div>
   </main>
+
 
   <!-- ✅ YOUR SCRIPT (unchanged) -->
   <script>
