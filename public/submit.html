@@ -595,7 +595,7 @@ async function refreshStatus() {
 
   if (!open) {
     statusEl.className = "status closed";
-    statusEl.textContent = "Submissions are only accepted during broadcasting.";
+    statusEl.textContent = "Submissions are only accepted during broadcasting. When the board is live, this page will unlock the submission form automatically.";
     form.style.display = "none";
   } else {
     statusEl.className = "status open";
