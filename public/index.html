@@ -668,35 +668,50 @@
       .btn{ padding: 11px 14px; border-radius: 12px; }
       .btn.cta{ width: 100%; max-width: 320px; }
 
-      /* ✅ HERO MOBILE FIX */
+    @media (max-width: 520px){
+      .wrap{ width: calc(100% - 28px); }
+      .nav{ height: 64px; }
+      .brand{ font-size: 18px; }
+
+      .btn{ padding: 11px 14px; border-radius: 12px; }
+      .btn.cta{ width: 100%; max-width: 320px; }
+
+      /* ✅ HERO: CONTENT-DRIVEN HEIGHT */
       .hero{
-        min-height: 440px;
-        padding: 36px 0 22px;
+        min-height: unset;          /* 🔑 remove forced height */
+        max-height: 420px;          /* prevents giant hero */
+        padding: 28px 0 18px;       /* tighter vertical spacing */
         overflow: hidden;
       }
+
       .hero::before{
-        background-position: 58% 20%;
+        background-position: 60% 18%; /* keeps subject visible */
       }
 
-      /* Prevent headline from feeling huge / awkward wraps */
       .headline{
-        font-size: clamp(28px, 9vw, 40px);
-        line-height: 1.06;
-        margin: 0 0 12px 0;
+        font-size: clamp(26px, 8vw, 38px);
+        line-height: 1.08;
+        margin: 0 0 10px 0;
       }
+
       .subhead{
         font-size: 14px;
-        margin: 0 auto 16px auto;
+        margin: 0 auto 14px auto;
       }
 
-      /* Keep pills from overflowing */
+      .hero-actions{
+        margin-bottom: 12px;
+      }
+
       .hero-toprow{
+        gap: 8px;
+        margin-bottom: 12px;
         justify-content: center;
       }
+
       .pill{
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 11px;
+        padding: 8px 10px;
       }
 
       .screen-inner{ padding: 16px; }
