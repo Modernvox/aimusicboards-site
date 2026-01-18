@@ -24,7 +24,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
   }
 
   const total = lyrics + delivery + production + originality + replay;
-  const approved = total >= 30 ? 1 : 0;
+  const approved = total >= 40 ? 1 : 0;
 
   // Insert/update score (one final score)
   await context.env.DB.prepare(`
