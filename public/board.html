@@ -961,6 +961,7 @@
       const rawUrl = String(it.track_url ?? "");
       const playUrl = makePlayableUrl(rawUrl);
 
+
       // fan inline values if present
       const fanAvgInline = safeNum(it.fan_avg, 0);
       const fanVotesInline = safeNum(it.fan_votes, 0);
@@ -1014,7 +1015,7 @@
 
           <div class="row2">
             <div class="scorePill">Total: <b>${total}</b></div>
-            ${playUrl ? `<a class="btn" href="${escapeHtml(playUrl)}" target="_blank" rel="noopener">Play</a>` : `<span class="btn" style="opacity:.5;cursor:default;">No Link</span>`}
+            <td>${playUrl ? `<a class="listen" href="${escapeHtml(playUrl)}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
           </div>
 
           <div class="fanMount" style="margin-top:10px;"></div>
@@ -1036,6 +1037,29 @@
   }
 
   refreshBtn.addEventListener("click", load);
+
+    function makePlayableUrl(u){
+        const url = String(u || "").trim();
+        if (!url) return "";
+
+        // If DB stores /uploads/..., route through R2 handler
+        if (url.startsWith("/uploads/")) return "/r2" + url;
+
+        // Already correct
+        if (url.startsWith("/r2/")) return url;
+
+        // Normalize full URLs pointing to /uploads/
+        try{
+            const parsed = new URL(url, location.origin);
+            if (parsed.origin === location.origin && parsed.pathname.startsWith("/uploads/")){
+                return "/r2" + parsed.pathname;
+            }
+        } catch {}
+
+        // External links (SoundCloud, YouTube, etc.)
+        return url;
+    }
+
 
   // default state
   setSortMode("judge");
