@@ -218,7 +218,7 @@
     .verdict{
       position:absolute;
       left: 14px;
-      top: calc(var(--safeTop) + 190px);
+      bottom: calc(var(--safeBottom) + 72px);
       padding: 9px 12px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,.16);
@@ -269,11 +269,11 @@
       .hud{ width: 74vw; top: calc(var(--safeTop) - 150px); }
       .cell{ width: 42px; }
     }
-    @media (max-height: 760px){
-      .verdict{
-        top: calc(var(--safeTop) + 160px);
-      }
+   @media (max-height: 760px){
+    .verdict{
+      bottom: calc(var(--safeBottom) + 56px);
     }
+  }
 
   </style>
 </head>
