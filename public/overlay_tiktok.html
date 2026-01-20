@@ -5,277 +5,275 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AI Music Boards – TikTok Live Overlay</title>
 
-  <style>
-    :root{
-      /* TikTok safe zones */
-      --safeTop: 210px;
-      --safeBottom: 300px;
+<style>
+  :root{
+    /* TikTok safe zones */
+    --safeTop: 210px;
+    --safeBottom: 300px;
 
-      /* Theme */
-      --panel: rgba(0,0,0,.58);
-      --panel2: rgba(0,0,0,.42);
-      --border: rgba(255,255,255,.14);
-      --text: rgba(255,255,255,.96);
-      --muted: rgba(255,255,255,.72);
+    /* Theme */
+    --panel: rgba(0,0,0,.58);
+    --panel2: rgba(0,0,0,.42);
+    --border: rgba(255,255,255,.14);
+    --text: rgba(255,255,255,.96);
+    --muted: rgba(255,255,255,.72);
 
-      --gold:#d4af37;
-      --red:#ff3b30;
-      --green:#2ecc71;
+    --gold:#d4af37;
+    --red:#ff3b30;
+    --green:#2ecc71;
 
-      /* Compactness */
-      --r: 12px;
-      --shadow: 0 10px 22px rgba(0,0,0,.32);
-      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: var(--font);
-      color: var(--text);
-      background: transparent;
-      overflow:hidden;
-    }
-    .stage{ position:relative; width:100vw; height:100vh; }
-
-    /* ===== TikTok HUD cluster (top-left) ===== */
-    .hud{
-      position:absolute;
-      left: 14px;
-      top: calc(var(--safeTop) - 140px);
-      z-index: 10;
-      display:flex;
-      flex-direction: column;
-      gap: 8px;
-      width: min(520px, 68vw);
-      pointer-events:none; /* overlay should not block taps in browser source */
-    }
-
-    .row{
-      display:flex;
-      gap: 8px;
-      align-items:center;
-      flex-wrap: wrap;
-    }
-
-    /* Pills */
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
-      line-height: 1;
-      white-space: nowrap;
-      font-weight: 900;
-      letter-spacing: .4px;
-      text-transform: uppercase;
-      font-size: 11px;
-    }
-    .dot{
-      width:8px; height:8px; border-radius:999px;
-      background: var(--red);
-      box-shadow: 0 0 12px rgba(255,59,48,.55);
-      flex: 0 0 auto;
-    }
-
-    #reviewPill{
-      opacity:.78;
-    }
-    #reviewPill[data-on="1"]{
-      opacity:1;
-      border-color: rgba(212,175,55,.45);
-      box-shadow: 0 0 18px rgba(212,175,55,.18);
-    }
-    #reviewPill[data-on="1"] .spark{
-      width:8px; height:8px; border-radius:999px;
-      background: var(--gold);
-      box-shadow: 0 0 14px rgba(212,175,55,.55);
-      display:inline-block;
-    }
-    #reviewPill[data-on="0"] .spark{
-      width:8px; height:8px; border-radius:999px;
-      background: rgba(255,255,255,.25);
-      display:inline-block;
-    }
-
-    /* Main card (tight) */
-    .card{
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-      padding: 10px 10px;
-    }
-    .cardTop{
-      display:flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
-    .kicker{
-      font-size: 10px;
-      opacity: .82;
-      font-weight: 1000;
-      letter-spacing: .8px;
-      text-transform: uppercase;
-    }
-    .qualify{
-      font-size: 10px;
-      opacity: .86;
-      font-weight: 1000;
-      letter-spacing: .6px;
-      text-transform: uppercase;
-    }
-    .qualify b{ color: var(--gold); }
-
-    .artist{
-      font-size: 13px;
-      font-weight: 1000;
-      letter-spacing: .3px;
-      text-transform: uppercase;
-      line-height: 1.1;
-      margin-bottom: 4px;
-    }
-    .title{
-      font-size: 12px;
-      font-weight: 850;
-      opacity:.92;
-      line-height: 1.15;
-      margin-bottom: 6px;
-    }
-    .meta{
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      font-size: 10px;
-      opacity:.78;
-      font-weight: 900;
-      letter-spacing: .6px;
-      text-transform: uppercase;
-    }
-    .meta span{ opacity:.95; letter-spacing:.2px; text-transform:none; font-weight:800; }
-
-    /* Scores row (tight strip under track) */
-    .scores{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255,255,255,.10);
-    }
-    .scoresLabel{
-      font-size: 10px;
-      opacity:.78;
-      font-weight: 1000;
-      letter-spacing:.8px;
-      text-transform: uppercase;
-      margin-right: 2px;
-    }
-    .cells{
-      display:flex;
-      gap: 6px;
-      align-items:center;
-      flex-wrap: wrap;
-    }
-    .cell{
-      width: 44px;
-      height: 28px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      display:flex;
-      flex-direction: column;
-      align-items:center;
-      justify-content:center;
-      line-height: 1;
-    }
-    .abbr{
-      font-size: 9px;
-      opacity: .72;
-      font-weight: 1000;
-      letter-spacing:.6px;
-      text-transform: uppercase;
-      margin-bottom: 2px;
-    }
-    .val{
-      font-size: 12px;
-      font-weight: 1000;
-    }
-    .s-low{ color: var(--red); }
-    .s-mid{ color: rgba(255,255,255,.94); }
-    .s-high{ color: var(--gold); }
-
-    /* Verdict toast (compact + doesn’t move layout) */
-    .verdict{
-      position:absolute;
-      left: 14px;
-      bottom: calc(var(--safeBottom) + 72px);
-      padding: 9px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.16);
-      background: rgba(0,0,0,.60);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
-      font-weight: 1000;
-      letter-spacing: .7px;
-      text-transform: uppercase;
-      font-size: 11px;
-      display:none;
-      gap: 10px;
-      align-items:center;
-      z-index: 11;
-      pointer-events:none;
-    }
-    .verdict[data-state="qualified"],
-    .verdict[data-state="rejected"]{ display:inline-flex; }
-
-    .verdict[data-state="qualified"]{ border-color: rgba(46,204,113,.45); }
-    .verdict[data-state="rejected"]{ border-color: rgba(255,59,48,.45); }
-    .verdict{
-      transform: translateY(6px);
-      opacity: 0;
-      transition: opacity .18s ease, transform .18s ease;
-    }
-    .verdict[data-state="qualified"],
-    .verdict[data-state="rejected"]{
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .tag{
-      padding: 5px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      font-size: 10px;
-      opacity:.92;
-      font-weight: 1000;
-      letter-spacing: .6px;
-      text-transform: uppercase;
-    }
-
-    /* Mobile tuning */
-    @media (max-width: 520px){
-      :root{ --safeTop: 195px; --safeBottom: 320px; }
-      .hud{ width: 74vw; top: calc(var(--safeTop) - 150px); }
-      .cell{ width: 42px; }
-    }
-   @media (max-height: 760px){
-    .verdict{
-      bottom: calc(var(--safeBottom) + 56px);
-    }
+    /* Compactness */
+    --r: 12px;
+    --shadow: 0 10px 22px rgba(0,0,0,.32);
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
   }
 
-  </style>
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family: var(--font);
+    color: var(--text);
+    background: transparent;
+    overflow:hidden;
+  }
+  .stage{ position:relative; width:100vw; height:100vh; }
+
+  /* ===== TikTok HUD cluster (top-left) ===== */
+  .hud{
+    position:absolute;
+    left: 14px;
+    top: calc(var(--safeTop) - 140px);
+    z-index: 10;
+
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+
+    /* ✅ hug content so card lines up with end of Review pill */
+    width: fit-content;
+    max-width: min(520px, 92vw);
+
+    pointer-events:none; /* overlay should not block taps in browser source */
+  }
+
+  .row{
+    display:flex;
+    gap: 8px;
+    align-items:center;
+
+    /* ✅ keep pills on one line so the row defines the cluster width */
+    flex-wrap: nowrap;
+  }
+
+  /* Pills */
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+    line-height: 1;
+    white-space: nowrap;
+    font-weight: 900;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+  .dot{
+    width:8px; height:8px; border-radius:999px;
+    background: var(--red);
+    box-shadow: 0 0 12px rgba(255,59,48,.55);
+    flex: 0 0 auto;
+  }
+
+  #reviewPill{ opacity:.78; }
+  #reviewPill[data-on="1"]{
+    opacity:1;
+    border-color: rgba(212,175,55,.45);
+    box-shadow: 0 0 18px rgba(212,175,55,.18);
+  }
+  #reviewPill[data-on="1"] .spark{
+    width:8px; height:8px; border-radius:999px;
+    background: var(--gold);
+    box-shadow: 0 0 14px rgba(212,175,55,.55);
+    display:inline-block;
+  }
+  #reviewPill[data-on="0"] .spark{
+    width:8px; height:8px; border-radius:999px;
+    background: rgba(255,255,255,.25);
+    display:inline-block;
+  }
+
+  /* Main card (tight) */
+  .card{
+    width: 100%;                 /* ✅ match hud width */
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    padding: 10px 10px;
+  }
+  .cardTop{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .kicker{
+    font-size: 10px;
+    opacity: .82;
+    font-weight: 1000;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+  }
+  .qualify{
+    font-size: 10px;
+    opacity: .86;
+    font-weight: 1000;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+  }
+  .qualify b{ color: var(--gold); }
+
+  .artist{
+    font-size: 13px;
+    font-weight: 1000;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .title{
+    font-size: 12px;
+    font-weight: 850;
+    opacity:.92;
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .meta{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 10px;
+    opacity:.78;
+    font-weight: 900;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+  }
+  .meta span{ opacity:.95; letter-spacing:.2px; text-transform:none; font-weight:800; }
+
+  /* Scores row */
+  .scores{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,.10);
+  }
+  .scoresLabel{
+    font-size: 10px;
+    opacity:.78;
+    font-weight: 1000;
+    letter-spacing:.8px;
+    text-transform: uppercase;
+    margin-right: 2px;
+  }
+  .cells{
+    display:flex;
+    gap: 6px;
+    align-items:center;
+    flex-wrap: wrap;
+  }
+  .cell{
+    width: 44px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    line-height: 1;
+  }
+  .abbr{
+    font-size: 9px;
+    opacity: .72;
+    font-weight: 1000;
+    letter-spacing:.6px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .val{
+    font-size: 12px;
+    font-weight: 1000;
+  }
+  .s-low{ color: var(--red); }
+  .s-mid{ color: rgba(255,255,255,.94); }
+  .s-high{ color: var(--gold); }
+
+  /* ✅ VERDICT (in-card, directly under scores) */
+  .verdict{
+    position: relative;          /* ✅ not absolute anymore */
+    margin-top: 8px;            /* ✅ sits directly under scores */
+    padding: 9px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.16);
+    background: rgba(0,0,0,.60);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+    font-weight: 1000;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+    font-size: 11px;
+    display:none;
+    gap: 10px;
+    align-items:center;
+    pointer-events:none;
+
+    /* small entrance animation */
+    transform: translateY(6px);
+    opacity: 0;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .verdict[data-state="qualified"],
+  .verdict[data-state="rejected"]{
+    display:inline-flex;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .verdict[data-state="qualified"]{ border-color: rgba(46,204,113,.45); }
+  .verdict[data-state="rejected"]{ border-color: rgba(255,59,48,.45); }
+
+  .tag{
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    font-size: 10px;
+    opacity:.92;
+    font-weight: 1000;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+  }
+
+  /* Mobile tuning */
+  @media (max-width: 520px){
+    :root{ --safeTop: 195px; --safeBottom: 320px; }
+    .hud{ max-width: 94vw; top: calc(var(--safeTop) - 150px); }
+    .cell{ width: 42px; }
+  }
+</style>
+
 </head>
 
 <body>
