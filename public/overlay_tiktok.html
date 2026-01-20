@@ -4,533 +4,475 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AI Music Boards – TikTok Live Overlay</title>
-<style>
-  :root{
-    --safeTop: 220px;
-    --safeBottom: 260px;
 
-    --panel: rgba(0,0,0,.52);
-    --border: rgba(255,255,255,.14);
-    --text: rgba(255,255,255,.95);
-    --muted: rgba(255,255,255,.72);
+  <style>
+    :root{
+      /* TikTok safe zones */
+      --safeTop: 210px;
+      --safeBottom: 300px;
 
-    --gold:#d4af37;
-    --red:#ff3b30;
-    --blue:#5aa2ff;
+      /* Theme */
+      --panel: rgba(0,0,0,.58);
+      --panel2: rgba(0,0,0,.42);
+      --border: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.96);
+      --muted: rgba(255,255,255,.72);
 
-    --r: 14px;
-    --shadow: 0 12px 28px rgba(0,0,0,.35);
-    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
-  }
+      --gold:#d4af37;
+      --red:#ff3b30;
+      --green:#2ecc71;
 
-  *{ box-sizing:border-box; }
-  html,body{ height:100%; }
-  body{
-    margin:0;
-    font-family: var(--font);
-    color: var(--text);
-    background: transparent;
-    overflow:hidden;
-  }
-  .stage{ position:relative; width:100vw; height:100vh; }
+      /* Compactness */
+      --r: 12px;
+      --shadow: 0 10px 22px rgba(0,0,0,.32);
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
+    }
 
-  /* ---- compact chips ---- */
-  .chip{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding: 10px 12px;
-    border-radius: 999px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    backdrop-filter: blur(8px);
-    box-shadow: var(--shadow);
-    line-height: 1;
-    white-space: nowrap;
-  }
-#reviewPill[data-on="0"]{
-  opacity: .70;
-  border-color: rgba(255,255,255,.14);
-}
-#reviewPill[data-on="1"]{
-  opacity: 1;
-  border-color: rgba(255,204,0,.45);
-  box-shadow: 0 0 18px rgba(255,204,0,.22);
-}
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--font);
+      color: var(--text);
+      background: transparent;
+      overflow:hidden;
+    }
+    .stage{ position:relative; width:100vw; height:100vh; }
 
+    /* ===== TikTok HUD cluster (top-left) ===== */
+    .hud{
+      position:absolute;
+      left: 14px;
+      top: calc(var(--safeTop) - 140px);
+      z-index: 10;
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+      width: min(520px, 68vw);
+      pointer-events:none; /* overlay should not block taps in browser source */
+    }
 
-  .dot{
-    width:9px; height:9px; border-radius:999px;
-    background: var(--red);
-    box-shadow: 0 0 14px rgba(255,59,48,.6);
-  }
-  .brand{
-    font-weight: 900;
-    letter-spacing: .6px;
-    text-transform: uppercase;
-    font-size: 12px;
-  }
-  .sub{
-    opacity:.75;
-    font-weight: 800;
-    font-size: 12px;
-    letter-spacing: .2px;
-  }
+    .row{
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
 
-  /* ---- layout anchors ---- */
-  .topLeft{
-    position:absolute;
-    top: calc(var(--safeTop) - 70px);
-    left: 16px;
-    display:flex;
-    gap:10px;
-    align-items:center;
-    z-index: 5;
-  }
+    /* Pills */
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      line-height: 1;
+      white-space: nowrap;
+      font-weight: 900;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: var(--red);
+      box-shadow: 0 0 12px rgba(255,59,48,.55);
+      flex: 0 0 auto;
+    }
 
-  .bottomLeft{
-    position:absolute;
-    left: 16px;
-    bottom: calc(var(--safeBottom) + 16px);
-    display:flex;
-    flex-direction: column;
-    gap:10px;
-    width: min(380px, 64vw);
-    z-index: 5;
-  }
+    #reviewPill{
+      opacity:.78;
+    }
+    #reviewPill[data-on="1"]{
+      opacity:1;
+      border-color: rgba(212,175,55,.45);
+      box-shadow: 0 0 18px rgba(212,175,55,.18);
+    }
+    #reviewPill[data-on="1"] .spark{
+      width:8px; height:8px; border-radius:999px;
+      background: var(--gold);
+      box-shadow: 0 0 14px rgba(212,175,55,.55);
+      display:inline-block;
+    }
+    #reviewPill[data-on="0"] .spark{
+      width:8px; height:8px; border-radius:999px;
+      background: rgba(255,255,255,.25);
+      display:inline-block;
+    }
 
-  .rowCard{
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
-    padding: 12px 12px;
-  }
-  .npTop{
-    display:flex;
-    justify-content: space-between;
-    align-items:center;
-    gap: 10px;
-    margin-bottom: 8px;
-  }
-  .npKicker{
-    font-size: 11px;
-    opacity: .78;
-    font-weight: 900;
-    letter-spacing: .7px;
-    text-transform: uppercase;
-  }
-  .npLine{
-    display:flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .npArtist{
-    font-weight: 1000;
-    letter-spacing: .3px;
-    text-transform: uppercase;
-    font-size: 14px;
-  }
-  .npTrack{
-    font-weight: 800;
-    font-size: 13px;
-    opacity:.88;
-  }
+    /* Main card (tight) */
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      padding: 10px 10px;
+    }
+    .cardTop{
+      display:flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .kicker{
+      font-size: 10px;
+      opacity: .82;
+      font-weight: 1000;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+    }
+    .qualify{
+      font-size: 10px;
+      opacity: .86;
+      font-weight: 1000;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+    }
+    .qualify b{ color: var(--gold); }
 
-  /* ---- score strip ---- */
-  .scoreStrip{
-    position:absolute;
-    right: 16px;
-    bottom: calc(var(--safeBottom) + 16px);
-    display:flex;
-    gap:10px;
-    z-index: 5;
-  }
-  .stripCard{
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
-    padding: 10px 12px;
-    display:flex;
-    align-items:center;
-    gap: 10px;
-  }
-  .stripTitle{
-    font-weight: 900;
-    letter-spacing: .6px;
-    text-transform: uppercase;
-    font-size: 11px;
-    opacity:.78;
-  }
-  .nums{
-    display:flex;
-    gap: 8px;
-    align-items:center;
-  }
-  .num{
-    width: 26px;
-    height: 26px;
-    border-radius: 10px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight: 1000;
-    font-size: 12px;
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.06);
-  }
-  .s-low{ color: var(--red); }
-  .s-mid{ color: rgba(255,255,255,.92); }
-  .s-high{ color: var(--gold); }
+    .artist{
+      font-size: 13px;
+      font-weight: 1000;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+    .title{
+      font-size: 12px;
+      font-weight: 850;
+      opacity:.92;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+    .meta{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 10px;
+      opacity:.78;
+      font-weight: 900;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+    }
+    .meta span{ opacity:.95; letter-spacing:.2px; text-transform:none; font-weight:800; }
 
-  /* ---- tiny leaderboard ---- */
-  .mini-board{
-    position:absolute;
-    right: 16px;
-    top: calc(var(--safeTop) + 12px);
-    width: min(260px, 38vw);
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
-    overflow:hidden;
-    z-index: 5;
-  }
-  .mini-board[data-show="0"]{ display:none; }
+    /* Scores row (tight strip under track) */
+    .scores{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,.10);
+    }
+    .scoresLabel{
+      font-size: 10px;
+      opacity:.78;
+      font-weight: 1000;
+      letter-spacing:.8px;
+      text-transform: uppercase;
+      margin-right: 2px;
+    }
+    .cells{
+      display:flex;
+      gap: 6px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+    .cell{
+      width: 44px;
+      height: 28px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      display:flex;
+      flex-direction: column;
+      align-items:center;
+      justify-content:center;
+      line-height: 1;
+    }
+    .abbr{
+      font-size: 9px;
+      opacity: .72;
+      font-weight: 1000;
+      letter-spacing:.6px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .val{
+      font-size: 12px;
+      font-weight: 1000;
+    }
+    .s-low{ color: var(--red); }
+    .s-mid{ color: rgba(255,255,255,.94); }
+    .s-high{ color: var(--gold); }
 
-  .mini-head{
-    padding: 10px 12px;
-    display:flex;
-    justify-content: space-between;
-    align-items:center;
-    border-bottom: 1px solid rgba(255,255,255,.10);
-  }
-  .mini-head .title{
-    font-weight: 1000;
-    letter-spacing: .6px;
-    text-transform: uppercase;
-    font-size: 12px;
-  }
-  .mini-head .rule{
-    font-size: 11px;
-    opacity:.72;
-    font-weight: 800;
-  }
-  .mini-item{
-    display:grid;
-    grid-template-columns: 18px 1fr 44px;
-    gap: 8px;
-    align-items:center;
-    padding: 9px 12px;
-    border-bottom: 1px solid rgba(255,255,255,.08);
-    font-size: 12px;
-  }
-  .mini-item:last-child{ border-bottom:none; }
-  .rank{ font-weight: 1000; opacity:.85; }
-  .name{
-    font-weight: 900;
-    overflow:hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    opacity:.92;
-  }
-  .score{ text-align:right; font-weight: 1000; }
-  .mini-item[data-top="1"] .rank,
-  .mini-item[data-top="1"] .score{ color: var(--gold); }
+    /* Verdict toast (compact + doesn’t move layout) */
+    .verdict{
+      position:absolute;
+      left: 14px;
+      bottom: calc(var(--safeBottom) + 130px);
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.60);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      font-weight: 1000;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      font-size: 11px;
+      display:none;
+      gap: 10px;
+      align-items:center;
+      z-index: 11;
+      pointer-events:none;
+    }
+    .verdict[data-state="qualified"],
+    .verdict[data-state="rejected"]{ display:inline-flex; }
 
-  /* ---- verdict toast ---- */
-  .verdict{
-    position:absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(var(--safeBottom) + 88px);
-    padding: 10px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.16);
-    background: rgba(0,0,0,.55);
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow);
-    font-weight: 1000;
-    letter-spacing: .8px;
-    text-transform: uppercase;
-    font-size: 12px;
-    display:none;
-    gap: 10px;
-    align-items:center;
-    z-index: 6;
-  }
-  .verdict[data-state="qualified"],
-  .verdict[data-state="rejected"],
-  .verdict[data-state="accepted"]{ display:inline-flex; }
+    .verdict[data-state="qualified"]{ border-color: rgba(46,204,113,.45); }
+    .verdict[data-state="rejected"]{ border-color: rgba(255,59,48,.45); }
 
-  .verdict[data-state="qualified"]{ border-color: rgba(212,175,55,.45); }
-  .verdict[data-state="rejected"]{ border-color: rgba(255,59,48,.45); }
-  .verdict[data-state="accepted"]{ border-color: rgba(46,204,113,.45); }
+    .tag{
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      font-size: 10px;
+      opacity:.92;
+      font-weight: 1000;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+    }
 
-  .verdict .tag{
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(255,255,255,.06);
-    font-size: 11px;
-    opacity:.9;
-  }
-
-  /* mobile safety */
-  @media (max-width: 520px){
-    :root{ --safeTop: 200px; --safeBottom: 290px; }
-    .mini-board{ width: 54vw; }
-    .bottomLeft{ width: 70vw; }
-  }
-</style>
+    /* Mobile tuning */
+    @media (max-width: 520px){
+      :root{ --safeTop: 195px; --safeBottom: 320px; }
+      .hud{ width: 74vw; top: calc(var(--safeTop) - 150px); }
+      .cell{ width: 42px; }
+    }
+  </style>
 </head>
 
 <body>
   <div class="stage">
 
-    <!-- top left: brand + queue -->
-    <div class="topLeft">
-      <div class="chip" aria-label="status">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="brand" id="brandText">AI MUSIC BOARDS</span>
-        <span class="sub" id="statusText">LIVE</span>
-      </div>
-
-      <div class="chip" id="sessionPill">Queue: —</div>
-     <div class="chip" id="reviewPill" data-on="0">REVIEW: OFF</div>
-    </div>
-
-    <!-- bottom left: now playing compact -->
-    <div class="bottomLeft">
-      <div class="rowCard" aria-label="now reviewing">
-        <div class="npTop">
-          <div class="npKicker">NOW REVIEWING</div>
-          <div class="sub">Qualify <span id="qualifyRule" style="color:var(--gold);font-weight:1000;">40+</span></div>
+    <!-- HUD cluster -->
+    <div class="hud">
+      <div class="row">
+        <div class="pill" aria-label="status">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="brandText">AI MUSIC BOARDS</span>
+          <span style="opacity:.75" id="statusText">LIVE</span>
         </div>
 
- <div class="npLine">
-  <div class="npArtist" id="artistName">WAITING…</div>
-  <div class="npTrack" id="trackTitle">“—”</div>
-  <div class="npKicker" style="margin-top:6px;opacity:.70;">
-    GENRE: <span id="trackGenre" style="opacity:.95;">—</span>
-  </div>
-</div>
+        <div class="pill" id="sessionPill">QUEUE: —</div>
 
+        <div class="pill" id="reviewPill" data-on="0">
+          <span class="spark" aria-hidden="true"></span>
+          <span id="reviewText">REVIEW: OFF</span>
+        </div>
+      </div>
 
-    <!-- bottom right: score strip -->
-    <div class="scoreStrip" aria-label="scores">
-      <div class="stripCard">
-        <div class="stripTitle">Scores</div>
-        <div class="nums">
-          <div class="num s-mid" id="scoreLyrics">0</div>
-          <div class="num s-mid" id="scoreDelivery">0</div>
-          <div class="num s-mid" id="scoreOriginality">0</div>
-          <div class="num s-mid" id="scoreRepeatability">0</div>
-          <div class="num s-mid" id="scoreProduction">0</div>
+      <div class="card" aria-label="now reviewing">
+        <div class="cardTop">
+          <div class="kicker">NOW REVIEWING</div>
+          <div class="qualify">QUALIFY <b>40+</b></div>
+        </div>
+
+        <div class="artist" id="artistName">WAITING…</div>
+        <div class="title" id="trackTitle">“—”</div>
+
+        <div class="meta">
+          <div>GENRE: <span id="trackGenre">—</span></div>
+        </div>
+
+        <div class="scores" aria-label="scores">
+          <div class="scoresLabel">SCORES</div>
+
+          <div class="cells">
+            <!-- These IDs are kept exactly as your overlay already uses -->
+            <div class="cell" id="cellLyrics">
+              <div class="abbr">LYR</div>
+              <div class="val s-mid" id="scoreLyrics">0</div>
+            </div>
+
+            <div class="cell" id="cellDelivery">
+              <div class="abbr">DEL</div>
+              <div class="val s-mid" id="scoreDelivery">0</div>
+            </div>
+
+            <div class="cell" id="cellProduction">
+              <div class="abbr">PROD</div>
+              <div class="val s-mid" id="scoreProduction">0</div>
+            </div>
+
+            <div class="cell" id="cellOriginality">
+              <div class="abbr">ORG</div>
+              <div class="val s-mid" id="scoreOriginality">0</div>
+            </div>
+
+            <div class="cell" id="cellReplay">
+              <div class="abbr">RPL</div>
+              <div class="val s-mid" id="scoreRepeatability">0</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- verdict toast -->
+    <!-- Verdict toast -->
     <div class="verdict" id="verdictBar" data-state="">
       <span id="verdictText">—</span>
       <span class="tag" id="verdictTag">—</span>
     </div>
 
-  
-
-      <div class="mini-item" data-top="1">
-        <div class="rank">1</div>
-        <div class="name" id="lb1Name">—</div>
-        <div class="score" id="lb1Score">—</div>
-      </div>
-
-      <div class="mini-item">
-        <div class="rank">2</div>
-        <div class="name" id="lb2Name">—</div>
-        <div class="score" id="lb2Score">—</div>
-      </div>
-
-      <div class="mini-item">
-        <div class="rank">3</div>
-        <div class="name" id="lb3Name">—</div>
-        <div class="score" id="lb3Score">—</div>
-      </div>
-    </aside>
-
   </div>
 
+  <script>
+    // ===== Config =====
+    const API = "https://aimusicboards.com";
+    const POLL_MS = 1500;   // snappier for live overlays
+    const QUALIFY_MIN = 40;
+    const DEBUG = false;
 
- <script>
-  // ===== Config =====
-  const API = "https://aimusicboards.com";
-  const POLL_MS = 2000;
-  const QUALIFY_MIN = 40;
-  const DEBUG = false; // set true when testing
+    // ===== Helpers =====
+    function $(id){ return document.getElementById(id); }
 
-  // ===== Helpers =====
-  function $(id){ return document.getElementById(id); }
-
-  function setText(id, text){
-    const el = $(id);
-    if (el) el.textContent = text;
-  }
-
-  function scoreClass(n){
-    const v = Number(n || 0);
-    if (v <= 3) return "s-low";
-    if (v >= 8) return "s-high";
-    return "s-mid";
-  }
-
-  function setScore(id, n){
-    const el = $(id);
-    if (!el) return;
-    el.textContent = String(n ?? 0);
-    el.classList.remove("s-low","s-mid","s-high");
-    el.classList.add(scoreClass(n));
-  }
-
-  function setVerdict(state, text, tag){
-    const bar = $("verdictBar");
-    if (!bar) return;
-    bar.setAttribute("data-state", state || "");
-    setText("verdictText", text || "—");
-    setText("verdictTag", tag || "—");
-  }
-
-  function setReview(on){
-    const pill = $("reviewPill");
-    if (!pill) return;
-    pill.setAttribute("data-on", on ? "1" : "0");
-    pill.textContent = on ? "REVIEW: IN PROGRESS" : "REVIEW: OFF";
-  }
-
-
-  async function getJSON(url){
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-    const ct = res.headers.get("content-type") || "";
-    if (!ct.includes("application/json")) {
-      // still try, but useful for debugging when Cloudflare serves HTML
-      if (DEBUG) console.warn("Non-JSON response:", url, ct);
+    function setText(id, text){
+      const el = $(id);
+      if (el) el.textContent = text;
     }
-    return res.json();
-  }
 
-  // ===== API Pollers =====
-  async function fetchStatus(){
-    try{
-      const data = await getJSON(`${API}/api/status`);
-      const q = data.queue_count ?? "—";
-      setText("sessionPill", `Queue: ${q}`);
-    }catch(e){
-      if (DEBUG) console.warn("status:", e);
+    function scoreClass(n){
+      const v = Number(n || 0);
+      if (v <= 3) return "s-low";
+      if (v >= 8) return "s-high";
+      return "s-mid";
     }
-  }
 
-  async function fetchNowPlaying(){
-    try{
-      const data = await getJSON(`${API}/api/now_playing`);
-      const np = data.now_playing || null;
+    function setScore(id, n){
+      const el = $(id);
+      if (!el) return;
+      el.textContent = String(n ?? 0);
+      el.classList.remove("s-low","s-mid","s-high");
+      el.classList.add(scoreClass(n));
+    }
 
-      if (!np){
-        setText("artistName","WAITING…");
-        setText("trackTitle","“—”");
-        setText("trackGenre","—");
+    function setVerdict(state, text, tag){
+      const bar = $("verdictBar");
+      if (!bar) return;
+      bar.setAttribute("data-state", state || "");
+      setText("verdictText", text || "—");
+      setText("verdictTag", tag || "—");
+    }
 
-        // reset scores
-        setScore("scoreLyrics",0);         // VOCALS
-        setScore("scoreDelivery",0);       // STRUCTURE
-        setScore("scoreOriginality",0);    // ORIGINALITY
-        setScore("scoreRepeatability",0);  // REPLAYABILITY
-        setScore("scoreProduction",0);     // PRODUCTION
+    function setReview(on){
+      const pill = $("reviewPill");
+      if (!pill) return;
+      pill.setAttribute("data-on", on ? "1" : "0");
+      setText("reviewText", on ? "REVIEW: IN PROGRESS" : "REVIEW: OFF");
+    }
+
+    async function getJSON(url){
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return res.json();
+    }
+
+    // ===== API Pollers =====
+    async function fetchStatus(){
+      try{
+        const data = await getJSON(`${API}/api/status`);
+        const q = data.queue_count ?? "—";
+        setText("sessionPill", `QUEUE: ${q}`);
+      }catch(e){
+        if (DEBUG) console.warn("status:", e);
+      }
+    }
+
+    async function fetchNowPlaying(){
+      try{
+        const data = await getJSON(`${API}/api/now_playing`);
+        const np = data.now_playing || null;
+
+        if (!np || np.active === false){
+          setText("artistName","WAITING…");
+          setText("trackTitle","“—”");
+          setText("trackGenre","—");
+
+          setScore("scoreLyrics",0);
+          setScore("scoreDelivery",0);
+          setScore("scoreProduction",0);
+          setScore("scoreOriginality",0);
+          setScore("scoreRepeatability",0);
+
+          setReview(false);
+          setVerdict("", "—", "—");
+          return;
+        }
+
+        // Identity
+        setText("artistName", (np.artist_name || "—").toUpperCase());
+        setText("trackTitle", np.track_title ? `“${np.track_title}”` : "“—”");
+        setText("trackGenre", (np.genre || "—").toString());
+
+        // Review indicator
+        setReview(!!np.is_playing);
+
+        // Scores (match your admin payload keys)
+        const lyrics = Number(np.lyrics || 0);
+        const delivery = Number(np.delivery || 0);
+        const production = Number(np.production || 0);
+        const originality = Number(np.originality || 0);
+        const replay = Number(np.replay || 0);
+
+        setScore("scoreLyrics", lyrics);
+        setScore("scoreDelivery", delivery);
+        setScore("scoreProduction", production);
+        setScore("scoreOriginality", originality);
+        setScore("scoreRepeatability", replay);
+
+        const computedTotal = lyrics + delivery + production + originality + replay;
+        const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
+
+        // Verdict only when final
+        if (!np.final){
+          setVerdict("", "—", "—");
+          return;
+        }
 
         setReview(false);
-        setVerdict("", "—", "—");
-        return;
+
+        if (total >= QUALIFY_MIN){
+          setVerdict("qualified", `TOTAL ${total} • QUALIFIED`, "MAKES THE BOARD");
+        }else{
+          setVerdict("rejected", `TOTAL ${total} • REJECTED`, "BELOW 40");
+        }
+
+      }catch(e){
+        if (DEBUG) console.warn("now_playing:", e);
       }
-
-      // ---- Track identity (on queue click) ----
-      setText("artistName", (np.artist_name || "—").toUpperCase());
-      setText("trackTitle", np.track_title ? `“${np.track_title}”` : "“—”");
-      setText("trackGenre", (np.genre || np.track_genre || np.style || "—").toString());
-
-      // ---- Review indicator (on play) ----
-      setReview(!!np.is_playing);
-
-      // ---- Scores ----
-      const vocals       = Number(np.vocals || 0);
-      const structure    = Number(np.structure || 0);
-      const originality  = Number(np.originality || 0);
-      const replay       = Number(np.replayability || 0);
-      const production   = Number(np.production || 0);
-
-      setScore("scoreLyrics", vocals);          // VOCALS
-      setScore("scoreDelivery", structure);     // STRUCTURE
-      setScore("scoreOriginality", originality);
-      setScore("scoreRepeatability", replay);
-      setScore("scoreProduction", production);
-
-      // ---- Total / Verdict ----
-      const computedTotal = vocals + structure + originality + replay + production;
-      const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
-
-      if (!np.final){
-        setVerdict("", "—", "—");
-        return;
-      }
-
-      setReview(false);
-
-      if (total >= QUALIFY_MIN){
-        setVerdict("qualified", `TOTAL ${total} • QUALIFIED`, "MAKES THE BOARD");
-      }else{
-        setVerdict("rejected", `TOTAL ${total} • REJECTED`, "BELOW 40");
-      }
-
-    }catch(e){
-      if (DEBUG) console.warn("now_playing:", e);
     }
-  }
 
-
-  async function fetchLeaderboard(){
-    try{
-      const data = await getJSON(`${API}/api/board`);
-      const items = (data.items || []).slice(0, 3);
-
-      const mb = $("miniBoard");
-      if (mb) mb.setAttribute("data-show", items.length ? "1" : "0");
-
-      const rows = [
-        { n:"lb1Name", s:"lb1Score" },
-        { n:"lb2Name", s:"lb2Score" },
-        { n:"lb3Name", s:"lb3Score" },
-      ];
-
-      for (let i=0; i<3; i++){
-        const it = items[i] || null;
-        setText(rows[i].n, it ? (it.artist_name || "—").toUpperCase() : "—");
-        setText(rows[i].s, it ? String(it.total ?? "—") : "—");
-      }
-    }catch(e){
-      if (DEBUG) console.warn("board:", e);
+    async function tick(){
+      await Promise.allSettled([
+        fetchStatus(),
+        fetchNowPlaying()
+      ]);
     }
-  }
 
-  await Promise.allSettled([
-    fetchStatus(),
-    fetchNowPlaying()
-  ]);
-
-  tick();
-  setInterval(tick, POLL_MS);
-</script>
+    tick();
+    setInterval(tick, POLL_MS);
+  </script>
 
 </body>
 </html>
