@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
   <title>AI Music Boards – TikTok Live Overlay</title>
 
 <style>
@@ -50,20 +54,18 @@
     flex-direction: column;
     gap: 8px;
 
-    /* ✅ hug content so card lines up with end of Review pill */
+    /* hug content so card lines up with end of Review pill */
     width: fit-content;
     max-width: min(520px, 92vw);
 
-    pointer-events:none; /* overlay should not block taps in browser source */
+    pointer-events:none;
   }
 
   .row{
     display:flex;
     gap: 8px;
     align-items:center;
-
-    /* ✅ keep pills on one line so the row defines the cluster width */
-    flex-wrap: nowrap;
+    flex-wrap: nowrap; /* keep pills on one line */
   }
 
   /* Pills */
@@ -73,10 +75,12 @@
     gap:8px;
     padding: 8px 10px;
     border-radius: 999px;
-    background: var(--panel);
-    border: 1px solid var(--border);
+
+    background: rgba(0,0,0,.38);
+    border: 1px solid rgba(255,255,255,.16);
+
     backdrop-filter: blur(10px);
-    box-shadow: var(--shadow);
+    box-shadow: 0 12px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.10);
     line-height: 1;
     white-space: nowrap;
     font-weight: 900;
@@ -84,6 +88,7 @@
     text-transform: uppercase;
     font-size: 11px;
   }
+
   .dot{
     width:8px; height:8px; border-radius:999px;
     background: var(--red);
@@ -109,16 +114,28 @@
     display:inline-block;
   }
 
-  /* Main card (tight) */
+  /* ===== Main card ===== */
   .card{
-    width: 100%;                 /* ✅ match hud width */
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(12px);
-    padding: 10px 10px;
+    width: 100%;
+    padding: 14px 14px;
+    border-radius: 18px;
+    display:flex;
+    flex-direction: column;
+
+    /* premium glass layers */
+    background:
+      radial-gradient(120% 140% at 12% 0%, rgba(212,175,55,.16) 0%, rgba(0,0,0,0) 55%),
+      radial-gradient(120% 140% at 88% 15%, rgba(255,255,255,.10) 0%, rgba(0,0,0,0) 55%),
+      linear-gradient(180deg, rgba(10,12,20,.74), rgba(6,7,12,.56));
+
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow:
+      0 18px 44px rgba(0,0,0,.50),
+      inset 0 1px 0 rgba(255,255,255,.14);
+
+    backdrop-filter: blur(14px);
   }
+
   .cardTop{
     display:flex;
     justify-content: space-between;
@@ -126,13 +143,15 @@
     gap: 10px;
     margin-bottom: 6px;
   }
+
   .kicker{
-    font-size: 10px;
-    opacity: .82;
-    font-weight: 1000;
-    letter-spacing: .8px;
+    font-size: 11px;
+    opacity: .86;
+    font-weight: 900;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
   }
+
   .qualify{
     font-size: 10px;
     opacity: .86;
@@ -143,110 +162,130 @@
   .qualify b{ color: var(--gold); }
 
   .artist{
-    font-size: 13px;
+    font-size: 22px;
     font-weight: 1000;
-    letter-spacing: .3px;
-    text-transform: uppercase;
-    line-height: 1.1;
+    letter-spacing: .2px;
+    text-transform: none;
+    line-height: 1.05;
     margin-bottom: 4px;
   }
+
   .title{
-    font-size: 12px;
-    font-weight: 850;
-    opacity:.92;
+    font-size: 16px;
+    font-weight: 650;
+    opacity: .88;
     line-height: 1.15;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
   }
+
   .meta{
     display:flex;
     gap: 10px;
     flex-wrap: wrap;
-    font-size: 10px;
-    opacity:.78;
-    font-weight: 900;
+    font-size: 12px;
+    opacity:.80;
+    font-weight: 800;
     letter-spacing: .6px;
     text-transform: uppercase;
   }
-  .meta span{ opacity:.95; letter-spacing:.2px; text-transform:none; font-weight:800; }
+  .meta span{
+    opacity:.95;
+    letter-spacing:.2px;
+    text-transform:none;
+    font-weight:700;
+  }
 
-  /* Scores row */
+  /* ===== Scores row ===== */
   .scores{
     display:flex;
-    align-items:center;
-    gap: 8px;
-    margin-top: 8px;
-    padding-top: 8px;
+    align-items:flex-start;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 1px solid rgba(255,255,255,.10);
   }
+
   .scoresLabel{
-    font-size: 10px;
-    opacity:.78;
-    font-weight: 1000;
-    letter-spacing:.8px;
-    text-transform: uppercase;
-    margin-right: 2px;
+    font-size: 11px;
+    opacity:.75;
+    font-weight: 900;
+    letter-spacing: 1.0px;
+    margin-top: 6px;
   }
+
   .cells{
     display:flex;
-    gap: 6px;
+    gap: 10px;
     align-items:center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
+
   .cell{
-    width: 44px;
-    height: 28px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.06);
+    width: 56px;
+    height: 64px;
+    border-radius: 16px;
+
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+    border: 1px solid rgba(255,255,255,.18);
+    box-shadow:
+      0 12px 20px rgba(0,0,0,.40),
+      inset 0 1px 0 rgba(255,255,255,.14);
+
     display:flex;
     flex-direction: column;
     align-items:center;
     justify-content:center;
     line-height: 1;
   }
+
   .abbr{
-    font-size: 9px;
-    opacity: .72;
-    font-weight: 1000;
-    letter-spacing:.6px;
-    text-transform: uppercase;
-    margin-bottom: 2px;
-  }
-  .val{
     font-size: 12px;
+    opacity: .82;
+    font-weight: 900;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .val{
+    font-size: 22px;
     font-weight: 1000;
   }
+
+  /* Score color classes (your JS depends on these) */
   .s-low{ color: var(--red); }
   .s-mid{ color: rgba(255,255,255,.94); }
   .s-high{ color: var(--gold); }
 
-  /* ✅ VERDICT (in-card, directly under scores) */
+  /* ===== Verdict bar ===== */
   .verdict{
-    position: relative;          /* ✅ not absolute anymore */
-    margin-top: 8px;            /* ✅ sits directly under scores */
-    padding: 9px 12px;
+    margin-top: 12px;
+    width: 100%;
+    justify-content: space-between;
+    padding: 10px 12px;
     border-radius: 999px;
+
     border: 1px solid rgba(255,255,255,.16);
-    background: rgba(0,0,0,.60);
-    backdrop-filter: blur(12px);
-    box-shadow: var(--shadow);
+    background: rgba(0,0,0,.35);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10);
+
     font-weight: 1000;
-    letter-spacing: .7px;
+    letter-spacing: .8px;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 12px;
+
     display:none;
     gap: 10px;
     align-items:center;
-    pointer-events:none;
 
-    /* small entrance animation */
     transform: translateY(6px);
     opacity: 0;
     transition: opacity .18s ease, transform .18s ease;
   }
+
   .verdict[data-state="qualified"],
   .verdict[data-state="rejected"]{
-    display:inline-flex;
+    display:flex;
     opacity: 1;
     transform: translateY(0);
   }
@@ -255,24 +294,35 @@
   .verdict[data-state="rejected"]{ border-color: rgba(255,59,48,.45); }
 
   .tag{
-    padding: 5px 9px;
+    padding: 6px 10px;
     border-radius: 999px;
     border: 1px solid rgba(255,255,255,.14);
-    background: rgba(255,255,255,.06);
-    font-size: 10px;
-    opacity:.92;
+    font-size: 11px;
     font-weight: 1000;
     letter-spacing: .6px;
     text-transform: uppercase;
+    background: rgba(255,255,255,.06);
+  }
+
+  .verdict[data-state="qualified"] .tag{
+    background: rgba(46,204,113,.14);
+    border-color: rgba(46,204,113,.28);
+  }
+  .verdict[data-state="rejected"] .tag{
+    background: rgba(255,59,48,.14);
+    border-color: rgba(255,59,48,.28);
   }
 
   /* Mobile tuning */
   @media (max-width: 520px){
     :root{ --safeTop: 195px; --safeBottom: 320px; }
     .hud{ max-width: 94vw; top: calc(var(--safeTop) - 150px); }
-    .cell{ width: 42px; }
+    .cell{ width: 50px; height: 58px; }
+    .val{ font-size: 20px; }
+    .cells{ flex-wrap: wrap; } /* allow wrap only on small screens */
   }
 </style>
+
 
 </head>
 
