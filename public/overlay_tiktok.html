@@ -240,6 +240,16 @@
 
     .verdict[data-state="qualified"]{ border-color: rgba(46,204,113,.45); }
     .verdict[data-state="rejected"]{ border-color: rgba(255,59,48,.45); }
+    .verdict{
+      transform: translateY(6px);
+      opacity: 0;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .verdict[data-state="qualified"],
+    .verdict[data-state="rejected"]{
+      opacity: 1;
+      transform: translateY(0);
+    }
 
     .tag{
       padding: 5px 9px;
@@ -259,6 +269,12 @@
       .hud{ width: 74vw; top: calc(var(--safeTop) - 150px); }
       .cell{ width: 42px; }
     }
+    @media (max-height: 760px){
+      .verdict{
+        top: calc(var(--safeTop) + 160px);
+      }
+    }
+
   </style>
 </head>
 
