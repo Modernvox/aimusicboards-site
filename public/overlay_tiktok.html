@@ -48,6 +48,17 @@
     line-height: 1;
     white-space: nowrap;
   }
+#reviewPill[data-on="0"]{
+  opacity: .70;
+  border-color: rgba(255,255,255,.14);
+}
+#reviewPill[data-on="1"]{
+  opacity: 1;
+  border-color: rgba(255,204,0,.45);
+  box-shadow: 0 0 18px rgba(255,204,0,.22);
+}
+
+
   .dot{
     width:9px; height:9px; border-radius:999px;
     background: var(--red);
@@ -290,6 +301,7 @@
       </div>
 
       <div class="chip" id="sessionPill">Queue: —</div>
+     <div class="chip" id="reviewPill" data-on="0">REVIEW: OFF</div>
     </div>
 
     <!-- bottom left: now playing compact -->
@@ -297,15 +309,17 @@
       <div class="rowCard" aria-label="now reviewing">
         <div class="npTop">
           <div class="npKicker">NOW REVIEWING</div>
-          <div class="sub">Qualify <span id="qualifyRule" style="color:var(--gold);font-weight:1000;">30+</span></div>
+          <div class="sub">Qualify <span id="qualifyRule" style="color:var(--gold);font-weight:1000;">40+</span></div>
         </div>
 
-        <div class="npLine">
-          <div class="npArtist" id="artistName">WAITING…</div>
-          <div class="npTrack" id="trackTitle">“—”</div>
-        </div>
-      </div>
-    </div>
+ <div class="npLine">
+  <div class="npArtist" id="artistName">WAITING…</div>
+  <div class="npTrack" id="trackTitle">“—”</div>
+  <div class="npKicker" style="margin-top:6px;opacity:.70;">
+    GENRE: <span id="trackGenre" style="opacity:.95;">—</span>
+  </div>
+</div>
+
 
     <!-- bottom right: score strip -->
     <div class="scoreStrip" aria-label="scores">
@@ -327,12 +341,7 @@
       <span class="tag" id="verdictTag">—</span>
     </div>
 
-    <!-- right side: tiny leaderboard -->
-    <aside class="mini-board" id="miniBoard" data-show="1" aria-label="leaderboard">
-      <div class="mini-head">
-        <div class="title">LEADERBOARD</div>
-        <div class="rule">30+ qualify</div>
-      </div>
+  
 
       <div class="mini-item" data-top="1">
         <div class="rank">1</div>
@@ -394,6 +403,14 @@
     setText("verdictTag", tag || "—");
   }
 
+  function setReview(on){
+    const pill = $("reviewPill");
+    if (!pill) return;
+    pill.setAttribute("data-on", on ? "1" : "0");
+    pill.textContent = on ? "REVIEW: IN PROGRESS" : "REVIEW: OFF";
+  }
+
+
   async function getJSON(url){
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
@@ -424,48 +441,63 @@
       if (!np){
         setText("artistName","WAITING…");
         setText("trackTitle","“—”");
-        setScore("scoreLyrics",0);
-        setScore("scoreDelivery",0);
-        setScore("scoreOriginality",0);
-        setScore("scoreRepeatability",0);
-        setScore("scoreProduction",0);
+        setText("trackGenre","—");
+
+        // reset scores
+        setScore("scoreLyrics",0);         // VOCALS
+        setScore("scoreDelivery",0);       // STRUCTURE
+        setScore("scoreOriginality",0);    // ORIGINALITY
+        setScore("scoreRepeatability",0);  // REPLAYABILITY
+        setScore("scoreProduction",0);     // PRODUCTION
+
+        setReview(false);
         setVerdict("", "—", "—");
         return;
       }
 
-      const lyrics = Number(np.lyrics || 0);
-      const delivery = Number(np.delivery || 0);
-      const production = Number(np.production || 0);
-      const originality = Number(np.originality || 0);
-      const replay = Number(np.replay || 0);
-
-      const computedTotal = lyrics + delivery + production + originality + replay;
-      const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
-
+      // ---- Track identity (on queue click) ----
       setText("artistName", (np.artist_name || "—").toUpperCase());
       setText("trackTitle", np.track_title ? `“${np.track_title}”` : "“—”");
+      setText("trackGenre", (np.genre || np.track_genre || np.style || "—").toString());
 
-      setScore("scoreLyrics", lyrics);
-      setScore("scoreDelivery", delivery);
-      setScore("scoreProduction", production);
+      // ---- Review indicator (on play) ----
+      setReview(!!np.is_playing);
+
+      // ---- Scores ----
+      const vocals       = Number(np.vocals || 0);
+      const structure    = Number(np.structure || 0);
+      const originality  = Number(np.originality || 0);
+      const replay       = Number(np.replayability || 0);
+      const production   = Number(np.production || 0);
+
+      setScore("scoreLyrics", vocals);          // VOCALS
+      setScore("scoreDelivery", structure);     // STRUCTURE
       setScore("scoreOriginality", originality);
       setScore("scoreRepeatability", replay);
+      setScore("scoreProduction", production);
 
-      const isFinal = !!np.final;
-      if (!isFinal){
+      // ---- Total / Verdict ----
+      const computedTotal = vocals + structure + originality + replay + production;
+      const total = Number.isFinite(Number(np.total)) ? Number(np.total) : computedTotal;
+
+      if (!np.final){
         setVerdict("", "—", "—");
         return;
       }
 
+      setReview(false);
+
       if (total >= QUALIFY_MIN){
-        setVerdict("qualified", "QUALIFIED", "ON THE BOARD");
+        setVerdict("qualified", `TOTAL ${total} • QUALIFIED`, "MAKES THE BOARD");
       }else{
-        setVerdict("rejected", "REJECTED", "OFF THE BOARD");
+        setVerdict("rejected", `TOTAL ${total} • REJECTED`, "BELOW 40");
       }
+
     }catch(e){
       if (DEBUG) console.warn("now_playing:", e);
     }
   }
+
 
   async function fetchLeaderboard(){
     try{
@@ -491,14 +523,10 @@
     }
   }
 
-  async function tick(){
-    // run in parallel so one slow endpoint doesn't stall the others
-    await Promise.allSettled([
-      fetchStatus(),
-      fetchNowPlaying(),
-      fetchLeaderboard()
-    ]);
-  }
+  await Promise.allSettled([
+    fetchStatus(),
+    fetchNowPlaying()
+  ]);
 
   tick();
   setInterval(tick, POLL_MS);
