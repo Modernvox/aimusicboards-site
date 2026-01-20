@@ -709,6 +709,48 @@
       display:flex;
       justify-content:center;
     }
+.leaderboard-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.leaderboard-link{
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
+  text-decoration: none;
+  opacity: 0.9;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.leaderboard-link:hover{
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.screen-title .muted{
+  font-size: 0.7em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+/* Mobile safety */
+@media (max-width: 640px){
+  .leaderboard-head{
+    align-items: flex-start;
+  }
+
+  .leaderboard-link{
+    font-size: 12px;
+  }
+}
+
 
     /* ---------------- MOBILE-FIRST TUNING (MATCH SAMPLE MOBILE) ---------------- */
     @media (max-width: 980px){
@@ -874,15 +916,30 @@
         <div class="ruleline" id="sessionLine" style="display:none;"></div>
       </div>
 
-      <!-- LEADERBOARD -->
-      <section id="leaderboard" class="screen" aria-label="Leaderboard">
-        <div class="screen-inner">
-          <div class="screen-head">
-            <h2 class="screen-title">LEADERBOARD</h2>
-            <div class="meta-row">
-              <div class="mini-muted">Qualifying: <b style="color:var(--gold)">40+</b> total</div>
-            </div>
-          </div>
+     <!-- LEADERBOARD -->
+<section id="leaderboard" class="screen" aria-label="Leaderboard">
+  <div class="screen-inner">
+    <div class="screen-head leaderboard-head">
+      <h2 class="screen-title">LEADERBOARD <span class="muted">TOP 3</span></h2>
+
+      <a
+        href="/board.html"
+        class="leaderboard-link"
+        target="_blank"
+        rel="noopener"
+      >
+        Go to Full Leaderboard →
+      </a>
+    </div>
+
+    <div class="meta-row">
+      <div class="mini-muted">
+        Qualifying: <b style="color:var(--gold)">40+</b> total
+      </div>
+    </div>
+  </div>
+</section>
+
 
           <!-- Top 3 rows -->
           <div class="podium" aria-label="Top 3">
