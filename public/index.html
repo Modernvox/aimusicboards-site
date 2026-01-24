@@ -1126,19 +1126,28 @@
     const cap = Number(state.cap ?? 50);
     const mode = String(state.mode ?? "manual").toUpperCase();
 
-    if (freeOpen) {
-      badge.style.borderColor = "rgba(46,204,113,0.35)";
-      badge.style.background = "rgba(46,204,113,0.10)";
-      dot.classList.add("on");
+    const showCount = freeCount > 10;
+    const countText = showCount ? ` • ${freeCount}/${cap}` : "";
 
-      text.textContent = `FREE OPEN • ${freeCount}/${cap} • MODE: ${mode}`;
-      btn.textContent = "Submit your song";
-      btn.href = "/submit";
-      btn.classList.remove("disabled");
+    if (freeOpen) {
+        badge.style.borderColor = "rgba(46,204,113,0.35)";
+        badge.style.background = "rgba(46,204,113,0.10)";
+        dot.classList.add("on");
+
+        text.textContent = `FREE OPEN${countText} • Priority reviews anytime`;
+        btn.textContent = "Submit your song";
+        btn.href = "/submit";
+        btn.classList.remove("disabled");
     } else {
-      badge.style.borderColor = "rgba(231,76,60,0.35)";
-      badge.style.background = "rgba(231,76,60,0.10)";
-      dot.classList.remove("on");
+        badge.style.borderColor = "rgba(231,76,60,0.35)";
+        badge.style.background = "rgba(231,76,60,0.10)";
+        dot.classList.remove("on");
+
+        text.textContent = `FREE PAUSED (QUEUE FULL) • Priority reviews remain open`;
+        btn.textContent = "Submit your song";
+        btn.href = "/submit";
+        btn.classList.remove("disabled");
+    }
 
       // Free closed doesn't mean paid is closed
       if (paidOpen) {
