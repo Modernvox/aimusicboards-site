@@ -461,8 +461,8 @@
 
         <nav class="navlinks" aria-label="primary">
           <a href="https://aimusicboards.com/">Home</a>
-          <a href="https://aimusicboards.com/board">Leaderboard</a>
-          <a href="https://aimusicboards.com/submit" aria-current="page">Submit Music</a>
+          <a href="/board.html">Leaderboard</a>
+          <a href="/submit.html" aria-current="page">Submit Music</a>
         </nav>
 
         <div class="navright">
@@ -480,7 +480,7 @@
         <div class="title-row">
           <div class="kicker">Submission Portal</div>
           <h1 class="h1">Artist Submission</h1>
-          <p class="sub">Submissions are only open during the live broadcast. When the board is live, you’ll be able to upload your track and get in the review queue.</p>
+          <p class="sub">Free submissions pause automatically when the queue is full. Paid Priority Review is always available (Skip the Line / Up Next).</p>
         </div>
 
         <section class="card" aria-label="Submit form card">
@@ -564,7 +564,7 @@
 
             <div class="footrow">
               <a class="btn" href="https://aimusicboards.com/">Back Home</a>
-              <a class="btn" href="https://aimusicboards.com/board">View Leaderboard</a>
+              <a class="btn" href="/board.html">View Leaderboard</a>
               <a class="btn primary" href="https://www.tiktok.com/@snapink.official" target="_blank" rel="noopener">Watch Live</a>
             </div>
 
@@ -588,27 +588,104 @@ const fileEl = document.getElementById("track_file");
 const trackKeyHidden = document.getElementById("track_key");
 const trackUrlHidden = document.getElementById("track_url");
 
-async function refreshStatus() {
-  const r = await fetch("/api/status", { cache: "no-store" });
-  const j = await r.json();
-  const open = !!j.submissions_open;
+let STATUS = {
+  freeOpen: false,
+  paidOpen: true,
+  freeCount: 0,
+  paidCount: 0,
+  cap: 50,
+  mode: "manual"
+};
 
-  if (!open) {
-    statusEl.className = "status closed";
-    statusEl.textContent = "Submissions are only accepted during broadcasting. When the board is live, this page will unlock the submission form automatically.";
-    form.style.display = "none";
-  } else {
-    statusEl.className = "status open";
-    statusEl.textContent = "LIVE: Submissions are OPEN.";
+function setStatusBox({ type, title, body }) {
+  // keep your nice status layout (dot + text)
+  statusEl.className = "status " + type;
+  statusEl.innerHTML = `
+    <span class="dot ${type === "open" ? "on" : ""}"></span>
+    <div>
+      <div class="st-title">${title}</div>
+      <div class="st-body">${body}</div>
+    </div>
+  `;
+}
+
+function setButtonEnabled(btn, enabled) {
+  if (!btn) return;
+  btn.disabled = !enabled;
+  btn.style.opacity = enabled ? "1" : "0.55";
+  btn.style.cursor = enabled ? "pointer" : "not-allowed";
+}
+
+async function refreshStatus() {
+  try {
+    const r = await fetch("/api/status", { cache: "no-store" });
+    const j = await r.json();
+
+    STATUS.freeOpen = !!(j.submissions_open_free ?? j.submissions_open);
+    STATUS.paidOpen = (j.submissions_open_paid !== undefined) ? !!j.submissions_open_paid : true;
+
+    STATUS.freeCount = Number(j.free_queue_count ?? j.queue_count ?? 0);
+    STATUS.paidCount = Number(j.paid_queue_count ?? 0);
+    STATUS.cap = Number(j.submissions_max_queue ?? 50);
+    STATUS.mode = String(j.submissions_mode ?? "manual");
+
+    // Form should be available if ANY submission path is available
+    const showForm = STATUS.freeOpen || STATUS.paidOpen;
+
+    if (!showForm) {
+      setStatusBox({
+        type: "closed",
+        title: "Submissions paused",
+        body: "Please check back soon."
+      });
+      form.style.display = "none";
+      return;
+    }
+
+    // Always show the form so paid can still happen even if free is full
     form.style.display = "block";
+
+    if (STATUS.freeOpen) {
+      setStatusBox({
+        type: "open",
+        title: "Free submissions OPEN",
+        body: `Free queue: ${STATUS.freeCount}/${STATUS.cap} • Paid Priority Review available anytime`
+      });
+    } else {
+      setStatusBox({
+        type: "closed",
+        title: "Free submissions PAUSED (queue full)",
+        body: `Free queue: ${STATUS.freeCount}/${STATUS.cap} • Paid Priority Review is still available`
+      });
+    }
+
+    // ✅ Button gating
+    setButtonEnabled(btnFree, STATUS.freeOpen);
+    setButtonEnabled(btnSkip, true);
+    setButtonEnabled(btnUpNext, true);
+
+  } catch (e) {
+    // If status fails, still allow paid route (best UX)
+    STATUS = { freeOpen: false, paidOpen: true, freeCount: 0, paidCount: 0, cap: 50, mode: "manual" };
+    setStatusBox({
+      type: "closed",
+      title: "Status unavailable",
+      body: "You can still try Paid Priority Review."
+    });
+    form.style.display = "block";
+    setButtonEnabled(btnFree, false);
+    setButtonEnabled(btnSkip, true);
+    setButtonEnabled(btnUpNext, true);
   }
 }
 
 function disableAll(disabled) {
+  // IMPORTANT: for paid to work even when free is closed,
+  // we only disable during upload/submit action, not based on STATUS
   [btnFree, btnSkip, btnUpNext].forEach(b => {
     if (!b) return;
     b.disabled = !!disabled;
-    b.style.opacity = disabled ? "0.6" : "1";
+    b.style.opacity = disabled ? "0.6" : (b.id === "btnFree" && !STATUS.freeOpen ? "0.55" : "1");
     b.style.cursor = disabled ? "not-allowed" : "pointer";
   });
   if (fileEl) fileEl.disabled = !!disabled;
@@ -642,14 +719,13 @@ async function uploadAudioFile(file) {
   const r = await fetch("/api/upload_audio", { method: "POST", body: fd });
   const j = await r.json().catch(() => ({}));
 
-  // Expect: { ok: true, key, audio_url }
   if (!r.ok || !j.ok || !j.key) {
     throw new Error((j && j.error) ? j.error : "Upload failed.");
   }
   return { key: j.key, audio_url: j.audio_url || "" };
 }
 
-async function createSubmission() {
+async function createSubmission({ allowFree } = { allowFree: false }) {
   if (!lyricsConfirm.checked) {
     msg.textContent = "You must confirm that your lyrics were written by you.";
     return null;
@@ -659,6 +735,12 @@ async function createSubmission() {
 
   if (!payload.artist_name || !payload.track_title || !payload.genre) {
     msg.textContent = "Please fill out all required fields.";
+    return null;
+  }
+
+  // If they clicked FREE but free is closed, stop early with a helpful message
+  if (allowFree && !STATUS.freeOpen) {
+    msg.textContent = "Free queue is currently full. Choose a paid option or check back soon.";
     return null;
   }
 
@@ -682,10 +764,7 @@ async function createSubmission() {
     return null;
   }
 
-  // ✅ Store R2 key for backend
   if (trackKeyHidden) trackKeyHidden.value = up.key;
-
-  // Keep legacy field empty (we do NOT want to expose full URL in DB anymore)
   if (trackUrlHidden) trackUrlHidden.value = "";
 
   const payload2 = buildPayload();
@@ -735,7 +814,7 @@ async function startPaidCheckout(submissionId, paidType) {
 }
 
 btnFree?.addEventListener("click", async () => {
-  const id = await createSubmission();
+  const id = await createSubmission({ allowFree: true });
   if (!id) return;
 
   msg.textContent = "Submitted! You’re in the queue.";
@@ -743,16 +822,19 @@ btnFree?.addEventListener("click", async () => {
   if (trackKeyHidden) trackKeyHidden.value = "";
   if (trackUrlHidden) trackUrlHidden.value = "";
   disableAll(false);
+
+  // Refresh status after a free submission (cap might flip)
+  refreshStatus();
 });
 
 btnSkip?.addEventListener("click", async () => {
-  const id = await createSubmission();
+  const id = await createSubmission({ allowFree: false });
   if (!id) return;
   await startPaidCheckout(id, "SKIP");
 });
 
 btnUpNext?.addEventListener("click", async () => {
-  const id = await createSubmission();
+  const id = await createSubmission({ allowFree: false });
   if (!id) return;
   await startPaidCheckout(id, "UPNEXT");
 });
