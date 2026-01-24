@@ -623,13 +623,18 @@ async function refreshStatus() {
     const r = await fetch("/api/status", { cache: "no-store" });
     const j = await r.json();
 
-    STATUS.freeOpen = !!(j.submissions_open_free ?? j.submissions_open);
-    STATUS.paidOpen = (j.submissions_open_paid !== undefined) ? !!j.submissions_open_paid : true;
-
     STATUS.freeCount = Number(j.free_queue_count ?? j.queue_count ?? 0);
     STATUS.paidCount = Number(j.paid_queue_count ?? 0);
     STATUS.cap = Number(j.submissions_max_queue ?? 50);
     STATUS.mode = String(j.submissions_mode ?? "manual");
+
+    // Paid follows backend (default true if missing)
+    STATUS.paidOpen = (j.submissions_open_paid !== undefined)
+      ? !!j.submissions_open_paid
+      : true;
+
+    // Free ignores backend toggle — ONLY capacity matters
+    STATUS.freeOpen = (STATUS.freeCount < STATUS.cap);
 
     // Form should be available if ANY submission path is available
     const showForm = STATUS.freeOpen || STATUS.paidOpen;
@@ -647,45 +652,54 @@ async function refreshStatus() {
     // Always show the form so paid can still happen even if free is full
     form.style.display = "block";
 
+    // Hide free queue count until it’s meaningful (0–10)
     const showCount = STATUS.freeCount > 10;
-
     const freeQueueText = showCount
-        ? `Free queue: ${STATUS.freeCount}/${STATUS.cap} • `
-        : "";
+      ? `Free queue: ${STATUS.freeCount}/${STATUS.cap} • `
+      : "";
 
     if (STATUS.freeOpen) {
-        setStatusBox({
-            type: "open",
-            title: "Free submissions OPEN",
-            body: `${freeQueueText}Priority reviews available anytime`
-        });
+      setStatusBox({
+        type: "open",
+        title: "Free submissions OPEN",
+        body: `${freeQueueText}Priority reviews available anytime`
+      });
     } else {
-        setStatusBox({
-            type: "closed",
-            title: "Free submissions PAUSED (queue full)",
-            body: `${freeQueueText}Priority reviews remain open`
-        });
+      setStatusBox({
+        type: "closed",
+        title: "Free submissions PAUSED (queue full)",
+        body: `${freeQueueText}Priority reviews remain open`
+      });
     }
-    // ✅ Button gating
+
+    // Button gating
     setButtonEnabled(btnFree, STATUS.freeOpen);
     setButtonEnabled(btnSkip, true);
     setButtonEnabled(btnUpNext, true);
 
   } catch (e) {
     // If status fails, still allow paid route (best UX)
-    STATUS = { freeOpen: false, paidOpen: true, freeCount: 0, paidCount: 0, cap: 50, mode: "manual" };
+    STATUS = {
+      freeOpen: false,
+      paidOpen: true,
+      freeCount: 0,
+      paidCount: 0,
+      cap: 50,
+      mode: "manual"
+    };
+
     setStatusBox({
       type: "closed",
       title: "Status unavailable",
       body: "You can still try Paid Priority Review."
     });
+
     form.style.display = "block";
     setButtonEnabled(btnFree, false);
     setButtonEnabled(btnSkip, true);
     setButtonEnabled(btnUpNext, true);
   }
 }
-
 function disableAll(disabled) {
   // IMPORTANT: for paid to work even when free is closed,
   // we only disable during upload/submit action, not based on STATUS
