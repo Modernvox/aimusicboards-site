@@ -318,6 +318,14 @@
 }
 .fanInline b{ color: var(--gold, #d4af37); }
 
+.live-btn .live-dot{
+  width:8px;height:8px;border-radius:999px;display:inline-block;
+  background: rgba(255,255,255,.35);
+  margin-right:8px;
+}
+.live-btn.is-live .live-dot{ background: rgba(46,204,113,.95); }
+.live-btn.is-offline .live-dot{ background: rgba(255,255,255,.35); }
+
     .qualify{
       font-size: 12px;
       color: rgba(255,255,255,.72);
@@ -554,7 +562,7 @@
 </head>
 
 <body>
-  <!-- NAV (same as homepage) -->
+ <!-- NAV -->
   <header>
     <div class="wrap">
       <div class="nav">
@@ -562,13 +570,20 @@
 
         <nav class="navlinks" aria-label="primary">
           <a href="https://aimusicboards.com/">Home</a>
-          <a href="https://aimusicboards.com/board" aria-current="page">Leaderboard</a>
+          <a href="https://aimusicboards.com/board">Leaderboard</a>
           <a href="https://aimusicboards.com/submit">Submit Music</a>
         </nav>
 
         <div class="navright">
-          <a class="btn primary" href="https://www.tiktok.com/@snapink.official" target="_blank" rel="noopener">Watch Live</a>
-        </div>
+<a id="watchBtn"
+   class="btn primary live-btn is-offline"
+   href="https://www.tiktok.com/@snapink.official"
+   target="_blank"
+   rel="noopener">
+  <span class="live-dot"></span>
+  <span class="live-label">VIEW CHANNEL</span>
+</a>      
+  </div>
       </div>
     </div>
   </header>
@@ -667,6 +682,34 @@
   </div>
 
 <script>
+  // ---------------- Header live button (Watch Live vs View Channel) ----------------
+  const TIKTOK_URL = "https://www.tiktok.com/@snapink.official";
+
+  function setLiveButton(isLive){
+    const btn = document.getElementById("watchBtn");
+    if (!btn) return;
+
+    btn.href = TIKTOK_URL;
+
+    const label = btn.querySelector(".live-label");
+    if (label) label.textContent = isLive ? "WATCH LIVE" : "VIEW CHANNEL";
+
+    btn.classList.toggle("is-live", !!isLive);
+    btn.classList.toggle("is-offline", !isLive);
+    btn.classList.toggle("live", !!isLive); // supports .btn.primary.live ring styling
+  }
+
+  async function pollStatus(){
+    try{
+      const r = await fetch("/api/status", { cache: "no-store" });
+      const s = await r.json();
+      setLiveButton(!!s.submissions_open);
+    } catch {
+      setLiveButton(false);
+    }
+  }
+
+  // ---------------- Existing leaderboard script ----------------
   const lastUpdatedEl = document.getElementById("lastUpdated");
   const refreshBtn = document.getElementById("refreshBtn");
 
@@ -707,8 +750,7 @@
 
   // ✅ IMPORTANT: Convert DB track_url to a real playable URL
   // - absolute URLs pass through
-  // - "uploads/..." becomes "https://<your-domain>/uploads/..."
-  // - "/uploads/..." becomes "https://<your-domain>/uploads/..."
+  // - "uploads/..." becomes "<origin>/uploads/..."
   // If your mp3s are actually in R2 with a different public base, change PUBLIC_UPLOAD_BASE below.
   const PUBLIC_UPLOAD_BASE = ""; // optional override, e.g. "https://aimusicboards.com"
 
@@ -813,7 +855,6 @@
       if (avgEl) avgEl.textContent = (Number.isFinite(a) && a > 0) ? a.toFixed(2) : "—";
       if (countEl) countEl.textContent = String(Number.isFinite(c) ? c : "—");
 
-      // keep inline labels in sync too
       updateInlineFanLabels(submissionId, a, c);
     }
 
@@ -888,7 +929,6 @@
   // ---------------- Sorting ----------------
   function setSortMode(mode){
     sortMode = (mode === "fan") ? "fan" : "judge";
-
     sortJudgeBtn?.classList.toggle("active", sortMode === "judge");
     sortFanBtn?.classList.toggle("active", sortMode === "fan");
   }
@@ -898,36 +938,36 @@
 
   // ---------------- Main load ----------------
   async function load(){
-    lastUpdatedEl.textContent = "Updated: …";
+    if (lastUpdatedEl) lastUpdatedEl.textContent = "Updated: …";
 
     let j;
     try{
       const r = await fetch("/api/board", { cache: "no-store" });
       j = await r.json();
-      lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
+      if (lastUpdatedEl) lastUpdatedEl.textContent = "Updated: " + fmtTime(new Date());
     }catch(e){
-      lastUpdatedEl.textContent = "Updated: —";
+      if (lastUpdatedEl) lastUpdatedEl.textContent = "Updated: —";
       const rows = document.getElementById("rows");
       const cards = document.getElementById("cards");
-      rows.innerHTML = `<tr><td colspan="5" class="muted">Unable to load right now. Please refresh.</td></tr>`;
-      cards.innerHTML = `<div class="empty">Unable to load right now. Please refresh.</div>`;
+      if (rows) rows.innerHTML = `<tr><td colspan="5" class="muted">Unable to load right now. Please refresh.</td></tr>`;
+      if (cards) cards.innerHTML = `<div class="empty">Unable to load right now. Please refresh.</div>`;
       return;
     }
 
     const rows = document.getElementById("rows");
     const cards = document.getElementById("cards");
-    rows.innerHTML = "";
-    cards.innerHTML = "";
+    if (rows) rows.innerHTML = "";
+    if (cards) cards.innerHTML = "";
 
     let items = Array.isArray(j?.items) ? j.items : [];
 
     if (items.length === 0){
-      rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
-      cards.innerHTML = `<div class="empty">No approved tracks yet.</div>`;
+      if (rows) rows.innerHTML = `<tr><td colspan="5" class="muted">No approved tracks yet.</td></tr>`;
+      if (cards) cards.innerHTML = `<div class="empty">No approved tracks yet.</div>`;
       return;
     }
 
-    // sort by fan if the API provides fan_avg/fan_votes (your sample does)
+    // sort by fan if the API provides fan_avg/fan_votes
     if (sortMode === "fan"){
       items = items.slice().sort((a, b) => {
         const aAvg = safeNum(a.fan_avg, 0);
@@ -961,7 +1001,6 @@
       const rawUrl = String(it.track_url ?? "");
       const playUrl = makePlayableUrl(rawUrl);
 
-
       // fan inline values if present
       const fanAvgInline = safeNum(it.fan_avg, 0);
       const fanVotesInline = safeNum(it.fan_votes, 0);
@@ -981,7 +1020,7 @@
         <td><strong>${total}</strong></td>
         <td>${playUrl ? `<a class="listen" href="${escapeHtml(playUrl)}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
       `;
-      rows.appendChild(tr);
+      rows?.appendChild(tr);
 
       // Set inline immediately if we have values
       if (submissionId){
@@ -991,7 +1030,7 @@
       // Desktop vote row (full-width)
       const tr2 = document.createElement("tr");
       tr2.innerHTML = `<td class="fanTd" colspan="5"></td>`;
-      rows.appendChild(tr2);
+      rows?.appendChild(tr2);
 
       if (submissionId){
         const voteBox = await buildFanVoteBox(submissionId);
@@ -1015,13 +1054,15 @@
 
           <div class="row2">
             <div class="scorePill">Total: <b>${total}</b></div>
-            <td>${playUrl ? `<a class="listen" href="${escapeHtml(playUrl)}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}</td>
+            <div>
+              ${playUrl ? `<a class="listen" href="${escapeHtml(playUrl)}" target="_blank" rel="noopener">Play</a>` : `<span class="muted">—</span>`}
+            </div>
           </div>
 
           <div class="fanMount" style="margin-top:10px;"></div>
         </div>
       `;
-      cards.appendChild(div);
+      cards?.appendChild(div);
 
       // Inline on mobile too
       if (submissionId){
@@ -1036,38 +1077,18 @@
     }
   }
 
-  refreshBtn.addEventListener("click", load);
-
-    function makePlayableUrl(u){
-        const url = String(u || "").trim();
-        if (!url) return "";
-
-        // If DB stores /uploads/..., route through R2 handler
-        if (url.startsWith("/uploads/")) return "/r2" + url;
-
-        // Already correct
-        if (url.startsWith("/r2/")) return url;
-
-        // Normalize full URLs pointing to /uploads/
-        try{
-            const parsed = new URL(url, location.origin);
-            if (parsed.origin === location.origin && parsed.pathname.startsWith("/uploads/")){
-                return "/r2" + parsed.pathname;
-            }
-        } catch {}
-
-        // External links (SoundCloud, YouTube, etc.)
-        return url;
-    }
-
+  refreshBtn?.addEventListener("click", load);
 
   // default state
   setSortMode("judge");
 
+  // Kick everything off
+  pollStatus();
+  setInterval(pollStatus, 6000);
+
   load();
   setInterval(load, 30000);
 </script>
-
 
 
 
