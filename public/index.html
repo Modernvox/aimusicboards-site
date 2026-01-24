@@ -1122,9 +1122,7 @@
     const freeOpen = !!state.freeOpen;
     const paidOpen = (state.paidOpen !== undefined) ? !!state.paidOpen : true;
     const freeCount = Number(state.freeCount ?? 0);
-    const paidCount = Number(state.paidCount ?? 0);
     const cap = Number(state.cap ?? 50);
-    const mode = String(state.mode ?? "manual").toUpperCase();
 
     const showCount = freeCount > 10;
     const countText = showCount ? ` • ${freeCount}/${cap}` : "";
@@ -1138,27 +1136,27 @@
         btn.textContent = "Submit your song";
         btn.href = "/submit";
         btn.classList.remove("disabled");
+
+    } else if (paidOpen) {
+        badge.style.borderColor = "rgba(231,76,60,0.35)";
+        badge.style.background = "rgba(231,76,60,0.10)";
+        dot.classList.remove("on");
+
+        text.textContent = `FREE PAUSED${countText} • Paid Priority Review available`;
+        btn.textContent = "Paid Priority Review";
+        btn.href = "/submit";
+        btn.classList.remove("disabled");
+
     } else {
         badge.style.borderColor = "rgba(231,76,60,0.35)";
         badge.style.background = "rgba(231,76,60,0.10)";
         dot.classList.remove("on");
 
-        text.textContent = `FREE PAUSED (QUEUE FULL) • Priority reviews remain open`;
-        btn.textContent = "Submit your song";
-        btn.href = "/submit";
-        btn.classList.remove("disabled");
-    }
-
-      // Free closed doesn't mean paid is closed
-      if (paidOpen) {
-        text.textContent = `FREE PAUSED • Queue ${freeCount}/${cap} • Paid still open`;
-        btn.textContent = "Paid Priority Review Available";
-        btn.href = "/submit";
-      } else {
-        text.textContent = `SUBMISSIONS PAUSED • Queue ${freeCount}/${cap}`;
+        text.textContent = `SUBMISSIONS PAUSED`;
         btn.textContent = "Check back soon";
         btn.href = "/submit";
-      }
+        btn.classList.add("disabled");
+    }
     }
 
     // Optional: if you want to reflect paid queue count somewhere later,
