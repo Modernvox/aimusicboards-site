@@ -92,11 +92,26 @@ export async function onRequest(context: { request: Request; env: Env }) {
     const sessionId = String(session?.id || "");
     if (!sessionId) return bad("Missing session id", 400);
 
+    // ✅ Grab metadata you set in paid_checkout.ts
+    const paid_type = String(session?.metadata?.paid_type || "").toUpperCase(); // "SKIP" | "UPNEXT"
+
+    // ✅ Priority rule (tweak if you want)
+    // UPNEXT outranks SKIP
+    const priority = paid_type === "UPNEXT" ? 2 : 1;
+
     await context.env.DB.prepare(`
       UPDATE submissions
-      SET payment_status = 'PAID'
+      SET payment_status = 'PAID',
+          paid = 1,
+          priority = ?,
+          paid_type = COALESCE(paid_type, ?)
+          -- If you create paid-intent submissions with status='PAYMENT_PENDING',
+          -- uncomment the next line to move them into the live queue after payment:
+          -- , status = 'NEW'
       WHERE stripe_session_id = ?
-    `).bind(sessionId).run();
+    `)
+      .bind(priority, paid_type, sessionId)
+      .run();
   }
 
   return json({ received: true });
