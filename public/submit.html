@@ -648,19 +648,18 @@ async function refreshStatus() {
     form.style.display = "block";
 
     if (STATUS.freeOpen) {
-      setStatusBox({
-        type: "open",
-        title: "Free submissions OPEN",
-        body: `Free queue: ${STATUS.freeCount}/${STATUS.cap} • Paid Priority Review available anytime`
-      });
+        setStatusBox({
+            type: "open",
+            title: "Free submissions OPEN",
+            body: `Free queue: ${STATUS.freeCount}/${STATUS.cap} • Priority reviews available anytime`
+        });
     } else {
-      setStatusBox({
-        type: "closed",
-        title: "Free submissions PAUSED (queue full)",
-        body: `Free queue: ${STATUS.freeCount}/${STATUS.cap} • Paid Priority Review is still available`
-      });
+        setStatusBox({
+            type: "closed",
+            title: "Free submissions PAUSED (queue full)",
+            body: `Free queue: ${STATUS.freeCount}/${STATUS.cap} • Priority reviews remain open`
+        });
     }
-
     // ✅ Button gating
     setButtonEnabled(btnFree, STATUS.freeOpen);
     setButtonEnabled(btnSkip, true);
