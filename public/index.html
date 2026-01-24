@@ -1198,24 +1198,28 @@
       const res = await fetch("/api/status", { cache: "no-store" });
       const data = await res.json();
 
-      const freeOpen = !!(data.submissions_open_free ?? data.submissions_open);
-      const paidOpen = (data.submissions_open_paid !== undefined)
-        ? !!data.submissions_open_paid
-        : true;
-
       const freeCount = Number(data.free_queue_count ?? data.queue_count ?? 0);
       const paidCount = Number(data.paid_queue_count ?? 0);
       const cap = Number(data.submissions_max_queue ?? 50);
       const mode = String(data.submissions_mode ?? "manual");
 
+      // ✅ Paid follows backend (default true if missing)
+      const paidOpen = (data.submissions_open_paid !== undefined)
+        ? !!data.submissions_open_paid
+        : true;
+
+      // ✅ Free ignores backend toggle; ONLY capacity matters
+      const freeOpen = (freeCount < cap);
+
       setBadgeState({ freeOpen, paidOpen, freeCount, paidCount, cap, mode });
 
       // ----- Option A: Watch Live / View Channel toggle -----
+      // Use an honest "LIVE" signal (broadcast open), NOT freeOpen
       const watchBtn = document.querySelector(".live-btn");
       const watchLabel = watchBtn?.querySelector(".live-label");
       const watchDot = watchBtn?.querySelector(".live-dot");
 
-      const isLive = freeOpen; // honest signal (free submissions open = you're live)
+      const isLive = !!(data.submissions_open); // backend live flag
 
       if (watchBtn && watchLabel && watchDot) {
         if (isLive) {
@@ -1230,6 +1234,7 @@
           watchDot.classList.remove("on");
         }
       }
+
     } catch (e) {
       setBadgeState({
         freeOpen: false,
@@ -1243,7 +1248,6 @@
       const text = document.getElementById("liveText");
       if (text) text.textContent = "Status: —";
 
-      // Force Watch Live button to offline state
       const watchBtn = document.querySelector(".live-btn");
       const watchLabel = watchBtn?.querySelector(".live-label");
       const watchDot = watchBtn?.querySelector(".live-dot");
@@ -1392,5 +1396,6 @@
   setInterval(loadLiveStatus, 5000);
   setInterval(loadNowPlaying, 2000);
   setInterval(loadLeaderboardHomepage, 15000);
-</script></body>
+</script>
+</body>
 </html>
