@@ -991,7 +991,7 @@
               <div class="icon">♪</div>
               <div>
                 <b>SUBMIT:</b>
-                <p>Upload your original AI music for our judges to evaluate during live sessions.</p>
+                <p>Submit your AI track anytime. Free submissions pause automatically when the queue is full.</p>
               </div>
             </div>
 
@@ -1007,16 +1007,16 @@
               <div class="icon">↑</div>
               <div>
                 <b>CLIMB:</b>
-                <p>Combined score <b>40+</b> qualifies for the leaderboard and weekly showcase.</p>
+                <p>Combined score <b>40+</b> qualifies for the leaderboard. Paid options can jump the line.</p>
               </div>
             </div>
           </div>
         </div>
 
         <aside class="card" id="watch">
-          <h3>Live Now</h3>
-          <div class="livebox">
-            <div class="livepill"><span class="dot"></span> Live Now</div>
+         <h3 id="watchTitle">Live</h3>
+<div class="livebox">
+  <div class="livepill" id="watchPill"><span class="dot" id="watchDot"></span><span id="watchText">Checking…</span></div>
            <div class="thumb">
   <video autoplay muted loop playsinline>
     <source src="/media/live-preview.mp4" type="video/mp4">
@@ -1111,7 +1111,7 @@
     return Number.isFinite(x) ? x : fallback;
   }
 
-  function setBadgeState(open) {
+  function setBadgeState(state) {
     const badge = document.getElementById("submitBadge");
     const dot = document.getElementById("liveDot");
     const text = document.getElementById("liveText");
@@ -1119,30 +1119,60 @@
 
     if (!badge || !dot || !text || !btn) return;
 
-    if (open) {
+    const freeOpen = !!state.freeOpen;
+    const paidOpen = (state.paidOpen !== undefined) ? !!state.paidOpen : true;
+    const freeCount = Number(state.freeCount ?? 0);
+    const paidCount = Number(state.paidCount ?? 0);
+    const cap = Number(state.cap ?? 50);
+    const mode = String(state.mode ?? "manual").toUpperCase();
+
+    if (freeOpen) {
       badge.style.borderColor = "rgba(46,204,113,0.35)";
       badge.style.background = "rgba(46,204,113,0.10)";
       dot.classList.add("on");
-      text.textContent = "Status: LIVE (Accepting submissions)";
-      btn.textContent = "Submit your song (LIVE)";
+
+      text.textContent = `FREE OPEN • ${freeCount}/${cap} • MODE: ${mode}`;
+      btn.textContent = "Submit your song";
       btn.href = "/submit";
+      btn.classList.remove("disabled");
     } else {
       badge.style.borderColor = "rgba(231,76,60,0.35)";
       badge.style.background = "rgba(231,76,60,0.10)";
       dot.classList.remove("on");
-      text.textContent = "Status: OFFLINE (Closed)";
-      btn.textContent = "Submit your song";
-      btn.href = "/submit";
+
+      // Free closed doesn't mean paid is closed
+      if (paidOpen) {
+        text.textContent = `FREE PAUSED • Queue ${freeCount}/${cap} • Paid still open`;
+        btn.textContent = "Paid Priority Review Available";
+        btn.href = "/submit";
+      } else {
+        text.textContent = `SUBMISSIONS PAUSED • Queue ${freeCount}/${cap}`;
+        btn.textContent = "Check back soon";
+        btn.href = "/submit";
+      }
     }
+
+    // Optional: if you want to reflect paid queue count somewhere later,
+    // you can add a small sublabel in the UI; for now we just keep it in state.
+    void paidCount;
   }
 
   async function loadLiveStatus() {
     try {
       const res = await fetch("/api/status", { cache: "no-store" });
       const data = await res.json();
-      setBadgeState(!!data.submissions_open);
+
+      const freeOpen = !!(data.submissions_open_free ?? data.submissions_open);
+      const paidOpen = (data.submissions_open_paid !== undefined) ? !!data.submissions_open_paid : true;
+
+      const freeCount = Number(data.free_queue_count ?? data.queue_count ?? 0);
+      const paidCount = Number(data.paid_queue_count ?? 0);
+      const cap = Number(data.submissions_max_queue ?? 50);
+      const mode = String(data.submissions_mode ?? "manual");
+
+      setBadgeState({ freeOpen, paidOpen, freeCount, paidCount, cap, mode });
     } catch (e) {
-      setBadgeState(false);
+      setBadgeState({ freeOpen: false, paidOpen: true, freeCount: 0, paidCount: 0, cap: 50, mode: "manual" });
       const text = document.getElementById("liveText");
       if (text) text.textContent = "Status: —";
     }
@@ -1163,19 +1193,22 @@
 
         const sub = [];
         if (np.genre) sub.push(np.genre);
-        if (np.paid_type) sub.push(np.paid_type === "SUPER" ? "UP NEXT" : "PAID SKIP");
+
+        // ✅ Align with new paid_type: UPNEXT | SKIP
+        const pt = String(np.paid_type || "").toUpperCase();
+        if (pt === "UPNEXT") sub.push("⭐ UP NEXT");
+        else if (pt === "SKIP") sub.push("💸 SKIP");
         else if (np.submission_id) sub.push("LIVE REVIEW");
 
         npSub.textContent = sub.join(" • ");
       } else {
-        npMain.textContent = "No Track Under Review · Live reviews resume soon";
-        npSub.textContent = "";
+        npMain.textContent = "No Track Under Review";
+        npSub.textContent = "Live reviews resume soon";
       }
     } catch (e) {
       // silent
     }
   }
-
 
   function renderPodium(id, entry, rank) {
     const el = document.getElementById(id);
@@ -1183,10 +1216,7 @@
 
     const trackEl = el.querySelector(".track");
     const scoreEl = el.querySelector(".score");
-    const metaEl = el.querySelector(".meta");
 
-    // Your podium blocks currently have multiple ".meta" divs in markup.
-    // We'll set the first one we find; if none exist, we only set track/score.
     const metas = el.querySelectorAll(".meta");
     const meta1 = metas && metas.length ? metas[0] : null;
 
@@ -1205,9 +1235,6 @@
     if (trackEl) trackEl.textContent = `${artist} — ${track}`;
     if (scoreEl) scoreEl.textContent = total;
     if (meta1) meta1.textContent = genre;
-
-    // If you want breakdowns on homepage later, add fields to /api/board and set metas[1] here.
-    // Example: metas[1].textContent = "L7 • V6 • P8 • O7";
   }
 
   function renderTable(entries) {
@@ -1258,7 +1285,6 @@
 
   async function loadLeaderboardHomepage() {
     try {
-      // Use the SAME endpoint as the working leaderboard page
       const res = await fetch("/api/board", { cache: "no-store" });
       const j = await res.json();
 
@@ -1266,8 +1292,6 @@
       if (lastUpdated) lastUpdated.textContent = "Updated: " + fmtTime(new Date());
 
       const items = Array.isArray(j?.items) ? j.items : [];
-
-      // Only show qualifying
       const entries = items.filter(e => Number(e.total || 0) >= QUALIFYING_MIN);
 
       renderPodium("top1", entries[0], 1);
@@ -1291,6 +1315,5 @@
   setInterval(loadNowPlaying, 2000);
   setInterval(loadLeaderboardHomepage, 15000);
 </script>
-
 </body>
 </html>
