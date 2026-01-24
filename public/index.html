@@ -1170,7 +1170,6 @@
       btn.textContent = "Submit your song";
       btn.href = "/submit";
       btn.classList.remove("disabled");
-
     } else if (paidOpen) {
       badge.style.borderColor = "rgba(231,76,60,0.35)";
       badge.style.background = "rgba(231,76,60,0.10)";
@@ -1180,7 +1179,6 @@
       btn.textContent = "Priority review options";
       btn.href = "/submit";
       btn.classList.remove("disabled");
-
     } else {
       badge.style.borderColor = "rgba(231,76,60,0.35)";
       badge.style.background = "rgba(231,76,60,0.10)";
@@ -1192,7 +1190,6 @@
       btn.classList.add("disabled");
     }
 
-    // keep referenced so future linting doesn’t complain
     void paidCount;
   }
 
@@ -1218,7 +1215,7 @@
       const watchLabel = watchBtn?.querySelector(".live-label");
       const watchDot = watchBtn?.querySelector(".live-dot");
 
-      const isLive = freeOpen; // honest signal
+      const isLive = freeOpen; // honest signal (free submissions open = you're live)
 
       if (watchBtn && watchLabel && watchDot) {
         if (isLive) {
@@ -1233,7 +1230,6 @@
           watchDot.classList.remove("on");
         }
       }
-
     } catch (e) {
       setBadgeState({
         freeOpen: false,
@@ -1277,7 +1273,6 @@
         const sub = [];
         if (np.genre) sub.push(np.genre);
 
-        // ✅ Align with new paid_type: UPNEXT | SKIP
         const pt = String(np.paid_type || "").toUpperCase();
         if (pt === "UPNEXT") sub.push("⭐ UP NEXT");
         else if (pt === "SKIP") sub.push("💸 SKIP");
@@ -1397,6 +1392,5 @@
   setInterval(loadLiveStatus, 5000);
   setInterval(loadNowPlaying, 2000);
   setInterval(loadLeaderboardHomepage, 15000);
-</script>
-</body>
+</script></body>
 </html>
