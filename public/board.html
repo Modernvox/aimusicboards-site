@@ -749,24 +749,34 @@
   }
 
   // ✅ IMPORTANT: Convert DB track_url to a real playable URL
-  // - absolute URLs pass through
-  // - "uploads/..." becomes "<origin>/uploads/..."
-  // If your mp3s are actually in R2 with a different public base, change PUBLIC_UPLOAD_BASE below.
-  const PUBLIC_UPLOAD_BASE = ""; // optional override, e.g. "https://aimusicboards.com"
-
+  // This is the logic that made your MP3s work:
+  // - /uploads/...  -> /r2/uploads/...   (public handler)
+  // - /r2/...       -> pass through
+  // - absolute URLs -> pass through
+  // - uploads/...   -> normalize to /r2/uploads/...
   function makePlayableUrl(raw){
-    const u = String(raw ?? "").trim();
-    if (!u) return "";
+    const url = String(raw ?? "").trim();
+    if (!url) return "";
 
-    // already absolute
-    if (u.startsWith("http://") || u.startsWith("https://")) return u;
+    // If DB stores /uploads/..., route through R2 handler
+    if (url.startsWith("/uploads/")) return "/r2" + url;
 
-    // if you have a dedicated public base for audio, use it
-    const base = (PUBLIC_UPLOAD_BASE || window.location.origin).replace(/\/+$/, "");
+    // Already correct
+    if (url.startsWith("/r2/")) return url;
 
-    // normalize relative path
-    const path = u.startsWith("/") ? u : `/${u}`;
-    return `${base}${path}`;
+    // Handle "uploads/..." without leading slash
+    if (url.startsWith("uploads/")) return "/r2/" + url;
+
+    // Normalize full URLs pointing to /uploads/
+    try{
+      const parsed = new URL(url, location.origin);
+      if (parsed.origin === location.origin && parsed.pathname.startsWith("/uploads/")){
+        return "/r2" + parsed.pathname;
+      }
+    } catch {}
+
+    // External links (SoundCloud, YouTube, etc.)
+    return url;
   }
 
   // ---------------- Fan voting helpers ----------------
@@ -1039,7 +1049,7 @@
         tr2.querySelector("td").innerHTML = `<div class="muted">Voting unavailable (missing submission_id).</div>`;
       }
 
-      // Mobile card
+      // Mobile card (✅ fixed: no <td> inside div)
       const div = document.createElement("div");
       div.className = "item" + (rank === 1 ? " top1" : "");
       div.innerHTML = `
@@ -1089,7 +1099,6 @@
   load();
   setInterval(load, 30000);
 </script>
-
 
 
 </body>
