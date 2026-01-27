@@ -595,6 +595,9 @@
         <div class="kicker">Leaderboard</div>
         <h1 class="h1">AI MUSIC BOARD</h1>
         <p class="sub">Only tracks scoring <b style="color:var(--gold);font-weight:900;">40+</b> make the board. Updated live during broadcasts.</p>
+<p class="muted" style="margin-top:10px;">
+  Ranked from live, on-stream reviews—submit a track to get scored and climb the board.
+</p>
       </div>
 
       <section class="board" aria-label="Leaderboard board">
@@ -602,20 +605,29 @@
           <div class="board-top">
             <div class="board-top-left">
               <h2>Leaderboard</h2>
-              <div class="qualify">Qualifying: <b>40+</b> total</div>
+              <div class="qualify">
+  Qualifying: <b>40+</b> total
+  <span class="muted">(5 categories, max 50)</span>
+</div>
             </div>
 
-            <div class="board-actions">
-              <div class="pill" id="lastUpdated">Updated: —</div>
+<div class="board-actions">
+  <div class="pill" id="lastUpdated">Updated: —</div>
 
-              <!-- ✅ NEW: Sort toggle (Judge vs Fan) -->
-              <div class="sortRow" role="group" aria-label="Sort leaderboard">
-                <button class="btn sortBtn active" id="sortJudge" type="button" data-sort="judge">Judge</button>
-                <button class="btn sortBtn" id="sortFan" type="button" data-sort="fan">Fan</button>
-              </div>
+  <!-- Sort toggle -->
+  <div class="sortRow" role="group" aria-label="Sort leaderboard">
+    <button class="btn sortBtn active" id="sortJudge" type="button" data-sort="judge">Judge</button>
+    <button class="btn sortBtn" id="sortFan" type="button" data-sort="fan">Fan</button>
+  </div>
 
-              <button class="btn refresh" id="refreshBtn" type="button">Refresh</button>
-            </div>
+  <!-- Sort explanation -->
+  <div class="mini-muted">
+    Judge = official review scores · Fan = community votes
+  </div>
+
+  <button class="btn refresh" id="refreshBtn" type="button">Refresh</button>
+</div>
+<a class="btn" href="/submit.html">Submit a Track</a>
           </div>
 
           <!-- Desktop table -->
